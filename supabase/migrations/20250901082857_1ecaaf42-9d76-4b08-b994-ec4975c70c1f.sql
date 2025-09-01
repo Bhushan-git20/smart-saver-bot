@@ -1,0 +1,2 @@
+-- Add OpenAI API key secret placeholder for the AI chatbot functionality
+-- This will be configured by the user through the secrets interface
