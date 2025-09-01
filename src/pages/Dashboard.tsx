@@ -6,7 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpenseTracker } from '@/components/ExpenseTracker';
 import { ChatBot } from '@/components/ChatBot';
 import { InvestmentModule } from '@/components/InvestmentModule';
-import { LogOut, DollarSign, MessageCircle, TrendingUp } from 'lucide-react';
+import { PaymentIntegration } from '@/components/PaymentIntegration';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -26,17 +28,20 @@ const Dashboard = () => {
               Welcome back, {user?.user_metadata?.first_name || 'User'}
             </p>
           </div>
-          <Button onClick={handleSignOut} variant="outline" size="sm">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button onClick={handleSignOut} variant="outline" size="sm">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="expenses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="expenses" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Expense Tracker
@@ -48,6 +53,10 @@ const Dashboard = () => {
             <TabsTrigger value="investments" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Investments
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              Payment Sync
             </TabsTrigger>
           </TabsList>
 
@@ -71,6 +80,10 @@ const Dashboard = () => {
 
           <TabsContent value="investments" className="space-y-6">
             <InvestmentModule />
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-6">
+            <PaymentIntegration />
           </TabsContent>
         </Tabs>
       </main>
