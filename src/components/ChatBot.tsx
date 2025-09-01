@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Send, Bot, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -43,24 +44,73 @@ export const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Call the AI chat function when it's implemented
-      // For now, simulate a response
-      setTimeout(() => {
-        const botResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: 'I understand your question about finances. The AI chatbot will be fully implemented with OpenAI integration to provide personalized financial advice based on your transaction data.',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botResponse]);
-        setIsLoading(false);
-      }, 1000);
+      // Get transaction data for context (you can pass this from parent component)
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(10);
+
+      // Calculate financial summary for context
+      const totalIncome = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0;
+      const totalExpenses = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0;
+      const categoryCount = transactions?.reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + t.amount;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      const topCategories = Object.entries(categoryCount)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([category]) => category);
+
+      const transactionData = {
+        totalIncome,
+        totalExpenses,
+        topCategories,
+        recentTransactions: transactions || []
+      };
+
+      // Call the AI chat function
+      const { data, error } = await supabase.functions.invoke('ai-financial-chat', {
+        body: {
+          message: userMessage.content,
+          transactionData,
+          userProfile: {
+            riskProfile: 'medium' // This could come from user profile
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to get AI response');
+      }
+
+      const botResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: data.response || 'I apologize, but I couldn\'t process your request at the moment. Please try again.',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, botResponse]);
     } catch (error) {
+      console.error('Chat error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to get response from AI assistant',
+        description: 'Failed to get response from AI assistant. Please try again.',
         variant: 'destructive',
       });
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: 'I apologize, but I\'m having trouble connecting right now. Please check your internet connection and try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
     }
   };
