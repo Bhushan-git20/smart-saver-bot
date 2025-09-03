@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,9 +16,9 @@ serve(async (req) => {
   try {
     const { message, transactionData, userProfile } = await req.json();
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+    const HF_TOKEN = Deno.env.get('OPENAI_API_KEY'); // Using the updated secret
+    if (!HF_TOKEN) {
+      throw new Error('Hugging Face API key not configured');
     }
 
     // Create financial context from user data
@@ -52,34 +53,26 @@ Risk Profile: ${userProfile?.riskProfile || 'Not specified'}
 
 Based on this context, provide personalized financial advice.`;
 
-    console.log('Sending request to OpenAI with message:', message);
+    console.log('Sending request to Hugging Face with message:', message);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
+    const hf = new HfInference(HF_TOKEN);
+
+    const fullPrompt = `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`;
+
+    const response = await hf.textGeneration({
+      model: 'microsoft/DialoGPT-medium',
+      inputs: fullPrompt,
+      parameters: {
+        max_new_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9,
+        return_full_text: false,
       },
-      body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_completion_tokens: 500,
-      }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
+    const aiResponse = response.generated_text;
 
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-
-    console.log('Received response from OpenAI:', aiResponse);
+    console.log('Received response from Hugging Face:', aiResponse);
 
     return new Response(JSON.stringify({ 
       response: aiResponse,
