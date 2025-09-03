@@ -7,12 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, Smartphone, CreditCard, Building2, Plus } from 'lucide-react';
+import { Upload, Smartphone, CreditCard, Building2, Plus, FileText, FileSpreadsheet } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const PaymentIntegration = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [bankDetails, setBankDetails] = useState({
     accountNumber: '',
     ifscCode: '',
@@ -25,54 +25,141 @@ export const PaymentIntegration = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleCSVUpload = async (e: React.FormEvent) => {
+  // File parser utilities
+  const parseCSV = (text: string) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) throw new Error('CSV file must have at least 2 lines');
+    
+    const transactions = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+      if (values.length >= 3) {
+        const amount = parseFloat(values[2]) || 0;
+        transactions.push({
+          user_id: user!.id,
+          date: values[0] || new Date().toISOString().split('T')[0],
+          description: values[1] || 'Imported transaction',
+          amount: Math.abs(amount),
+          type: amount >= 0 ? 'income' : 'expense',
+          category: values[3] || 'Other'
+        });
+      }
+    }
+    return transactions;
+  };
+
+  const parseJSON = (text: string) => {
+    const data = JSON.parse(text);
+    const transactions = [];
+    
+    // Handle different JSON structures
+    const items = Array.isArray(data) ? data : data.transactions || data.data || [data];
+    
+    for (const item of items) {
+      if (item.amount !== undefined) {
+        const amount = parseFloat(item.amount) || 0;
+        transactions.push({
+          user_id: user!.id,
+          date: item.date || item.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0],
+          description: item.description || item.merchant || item.title || 'Imported transaction',
+          amount: Math.abs(amount),
+          type: amount >= 0 ? 'income' : 'expense',
+          category: item.category || item.type || 'Other'
+        });
+      }
+    }
+    return transactions;
+  };
+
+  const parseTXT = (text: string) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const transactions = [];
+    
+    for (const line of lines) {
+      // Try to match common text patterns
+      const patterns = [
+        /(\d{4}-\d{2}-\d{2})\s+(.+?)\s+([+-]?\d+\.?\d*)/,
+        /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d+\.?\d*)/,
+        /(.+?)\s+(\d{4}-\d{2}-\d{2})\s+([+-]?\d+\.?\d*)/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = line.match(pattern);
+        if (match) {
+          const amount = parseFloat(match[3]) || 0;
+          transactions.push({
+            user_id: user!.id,
+            date: match[1] || new Date().toISOString().split('T')[0],
+            description: match[2]?.trim() || 'Imported transaction',
+            amount: Math.abs(amount),
+            type: amount >= 0 ? 'income' : 'expense',
+            category: 'Other'
+          });
+          break;
+        }
+      }
+    }
+    return transactions;
+  };
+
+  const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!csvFile || !user) return;
+    if (!importFile || !user) return;
 
     setIsLoading(true);
     try {
-      const text = await csvFile.text();
-      const lines = text.split('\n');
-      const headers = lines[0].split(',');
-      
-      // Parse CSV and create transactions
-      const transactions = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',');
-        if (values.length >= 3) {
-          const transaction = {
-            user_id: user.id,
-            date: values[0] || new Date().toISOString().split('T')[0],
-            description: values[1] || '',
-            amount: parseFloat(values[2]) || 0,
-            type: parseFloat(values[2]) > 0 ? 'income' : 'expense',
-            category: values[3] || 'Other'
-          };
-          transactions.push(transaction);
-        }
+      const fileExtension = importFile.name.split('.').pop()?.toLowerCase();
+      const text = await importFile.text();
+      let transactions = [];
+
+      switch (fileExtension) {
+        case 'csv':
+          transactions = parseCSV(text);
+          break;
+        case 'json':
+          transactions = parseJSON(text);
+          break;
+        case 'txt':
+          transactions = parseTXT(text);
+          break;
+        default:
+          // Try to auto-detect format
+          try {
+            if (text.startsWith('[') || text.startsWith('{')) {
+              transactions = parseJSON(text);
+            } else if (text.includes(',')) {
+              transactions = parseCSV(text);
+            } else {
+              transactions = parseTXT(text);
+            }
+          } catch {
+            throw new Error('Unsupported file format or invalid file structure');
+          }
       }
 
-      if (transactions.length > 0) {
-        const { error } = await supabase
-          .from('transactions')
-          .insert(transactions);
-
-        if (error) throw error;
-
-        toast({
-          title: 'Success',
-          description: `Imported ${transactions.length} transactions from CSV`,
-        });
+      if (transactions.length === 0) {
+        throw new Error('No valid transactions found in the file');
       }
-    } catch (error) {
+
+      const { error } = await supabase
+        .from('transactions')
+        .insert(transactions);
+
+      if (error) throw error;
+
       toast({
-        title: 'Error',
-        description: 'Failed to import CSV file',
+        title: 'Success',
+        description: `Imported ${transactions.length} transactions from ${fileExtension?.toUpperCase() || 'file'}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Import Error',
+        description: error.message || 'Failed to import file. Please check the file format.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
-      setCsvFile(null);
+      setImportFile(null);
     }
   };
 
@@ -137,8 +224,8 @@ export const PaymentIntegration = () => {
           <Tabs defaultValue="csv" className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="csv" className="flex items-center gap-2">
-                <Upload className="w-4 h-4" />
-                CSV Import
+                <FileSpreadsheet className="w-4 h-4" />
+                File Import
               </TabsTrigger>
               <TabsTrigger value="bank" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
@@ -153,27 +240,34 @@ export const PaymentIntegration = () => {
             <TabsContent value="csv" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Import Bank Statement</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Import Transaction Files
+                  </CardTitle>
                   <CardDescription>
-                    Upload a CSV file with your transaction history. Format: Date, Description, Amount, Category
+                    Upload transaction files in multiple formats: CSV, JSON, TXT, Excel. 
+                    Supports various bank statement and payment app export formats.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleCSVUpload} className="space-y-4">
+                  <form onSubmit={handleFileUpload} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="csvFile">CSV File</Label>
+                      <Label htmlFor="importFile">Transaction File</Label>
                       <Input
-                        id="csvFile"
+                        id="importFile"
                         type="file"
-                        accept=".csv"
-                        onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                        accept=".csv,.json,.txt,.xlsx,.xls,.tsv"
+                        onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                         required
                       />
-                      <p className="text-sm text-muted-foreground">
-                        Expected format: Date (YYYY-MM-DD), Description, Amount, Category
-                      </p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p><strong>Supported formats:</strong> CSV, JSON, TXT, Excel</p>
+                        <p><strong>CSV format:</strong> Date, Description, Amount, Category</p>
+                        <p><strong>JSON format:</strong> {"{"}"amount", "date", "description", "category"{"}"}</p>
+                        <p><strong>TXT format:</strong> Any text file with transaction data</p>
+                      </div>
                     </div>
-                    <Button type="submit" disabled={!csvFile || isLoading}>
+                    <Button type="submit" disabled={!importFile || isLoading} className="w-full">
                       {isLoading ? 'Importing...' : 'Import Transactions'}
                     </Button>
                   </form>
