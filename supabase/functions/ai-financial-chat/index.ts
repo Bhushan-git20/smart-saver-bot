@@ -16,7 +16,7 @@ serve(async (req) => {
   try {
     const { message, transactionData, userProfile } = await req.json();
 
-    const HF_TOKEN = Deno.env.get('OPENAI_API_KEY'); // Using the updated secret
+    const HF_TOKEN = Deno.env.get('HF_TOKEN');
     if (!HF_TOKEN) {
       throw new Error('Hugging Face API key not configured');
     }
