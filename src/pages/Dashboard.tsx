@@ -8,7 +8,10 @@ import { ChatBot } from '@/components/ChatBot';
 import { InvestmentModule } from '@/components/InvestmentModule';
 import { PaymentIntegration } from '@/components/PaymentIntegration';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone } from 'lucide-react';
+import { RecurringTransactions } from '@/components/RecurringTransactions';
+import { BudgetGoals } from '@/components/BudgetGoals';
+import { PortfolioTracker } from '@/components/PortfolioTracker';
+import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -41,10 +44,18 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="expenses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="expenses" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Expense Tracker
+              Expenses
+            </TabsTrigger>
+            <TabsTrigger value="recurring" className="flex items-center gap-2">
+              <Repeat className="w-4 h-4" />
+              Recurring
+            </TabsTrigger>
+            <TabsTrigger value="budget" className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Budget
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4" />
@@ -56,12 +67,20 @@ const Dashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="payments" className="flex items-center gap-2">
               <Smartphone className="w-4 h-4" />
-              Payment Sync
+              Payments
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="expenses" className="space-y-6">
             <ExpenseTracker />
+          </TabsContent>
+
+          <TabsContent value="recurring" className="space-y-6">
+            <RecurringTransactions />
+          </TabsContent>
+
+          <TabsContent value="budget" className="space-y-6">
+            <BudgetGoals />
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-6">
@@ -79,6 +98,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="investments" className="space-y-6">
+            <PortfolioTracker />
             <InvestmentModule />
           </TabsContent>
 
