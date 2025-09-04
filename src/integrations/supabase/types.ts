@@ -14,6 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      budget_goals: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          monthly_limit: number | null
+          monthly_savings_target: number | null
+          period_end: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_limit?: number | null
+          monthly_savings_target?: number | null
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_limit?: number | null
+          monthly_savings_target?: number | null
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_conversations: {
+        Row: {
+          context: Json | null
+          created_at: string
+          id: string
+          message: string
+          response: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          response: string
+          session_id?: string
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          response?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_holdings: {
+        Row: {
+          created_at: string
+          current_price: number | null
+          id: string
+          last_updated: string | null
+          name: string
+          purchase_date: string
+          purchase_price: number
+          quantity: number
+          symbol: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_price?: number | null
+          id?: string
+          last_updated?: string | null
+          name: string
+          purchase_date: string
+          purchase_price: number
+          quantity: number
+          symbol: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_price?: number | null
+          id?: string
+          last_updated?: string | null
+          name?: string
+          purchase_date?: string
+          purchase_price?: number
+          quantity?: number
+          symbol?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -38,6 +152,60 @@ export type Database = {
           last_name?: string | null
           risk_profile?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      recurring_transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_processed: string | null
+          name: string
+          next_due_date: string
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_processed?: string | null
+          name: string
+          next_due_date: string
+          start_date?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_processed?: string | null
+          name?: string
+          next_due_date?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -77,12 +245,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          ai_provider: string
+          budget_alerts: boolean
+          created_at: string
+          email_notifications: boolean
+          id: string
+          monthly_reports: boolean
+          updated_at: string
+          user_id: string
+          weekly_reports: boolean
+        }
+        Insert: {
+          ai_provider?: string
+          budget_alerts?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          monthly_reports?: boolean
+          updated_at?: string
+          user_id: string
+          weekly_reports?: boolean
+        }
+        Update: {
+          ai_provider?: string
+          budget_alerts?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          monthly_reports?: boolean
+          updated_at?: string
+          user_id?: string
+          weekly_reports?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      process_recurring_transactions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
