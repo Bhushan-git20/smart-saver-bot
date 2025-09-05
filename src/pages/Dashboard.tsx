@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpenseTracker } from '@/components/ExpenseTracker';
-import { ChatBot } from '@/components/ChatBot';
+import { ChatBotAdvanced } from '@/components/ChatBotAdvanced';
 import { InvestmentModule } from '@/components/InvestmentModule';
 import { PaymentIntegration } from '@/components/PaymentIntegration';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -88,11 +88,11 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle>AI Financial Assistant</CardTitle>
                 <CardDescription>
-                  Ask questions about your finances, get budget suggestions, and receive personalized advice
+                  Advanced AI assistant with multiple providers, conversation memory, and personalized advice
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ChatBot />
+                <ChatBotAdvanced />
               </CardContent>
             </Card>
           </TabsContent>
