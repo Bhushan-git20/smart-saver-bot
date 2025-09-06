@@ -245,6 +245,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          id: string
+          progress: number
+          unlocked: boolean
+          unlocked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          id?: string
+          progress?: number
+          unlocked?: boolean
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          id?: string
+          progress?: number
+          unlocked?: boolean
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           ai_provider: string
@@ -278,6 +311,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weekly_reports?: boolean
+        }
+        Relationships: []
+      }
+      user_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_updated: string
+          longest_streak: number
+          streak_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_updated?: string
+          longest_streak?: number
+          streak_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_updated?: string
+          longest_streak?: number
+          streak_type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

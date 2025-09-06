@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Upload, Smartphone, CreditCard, Building2, Plus, FileText, FileSpreadsheet } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ReceiptScanner } from './ReceiptScanner';
 
 export const PaymentIntegration = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -222,10 +223,14 @@ export const PaymentIntegration = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="csv" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="csv" className="flex items-center gap-2">
                 <FileSpreadsheet className="w-4 h-4" />
                 File Import
+              </TabsTrigger>
+              <TabsTrigger value="ocr" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Receipt OCR
               </TabsTrigger>
               <TabsTrigger value="bank" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
@@ -273,6 +278,10 @@ export const PaymentIntegration = () => {
                   </form>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="ocr" className="space-y-4">
+              <ReceiptScanner />
             </TabsContent>
 
             <TabsContent value="bank" className="space-y-4">

@@ -11,7 +11,10 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { RecurringTransactions } from '@/components/RecurringTransactions';
 import { BudgetGoals } from '@/components/BudgetGoals';
 import { PortfolioTracker } from '@/components/PortfolioTracker';
-import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target } from 'lucide-react';
+import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target, Trophy, Settings as SettingsIcon } from 'lucide-react';
+import { Gamification } from '@/components/Gamification';
+import { DataBackup } from '@/components/DataBackup';
+import { Settings } from '@/components/Settings';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -44,7 +47,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="expenses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="expenses" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Expenses
@@ -56,6 +59,10 @@ const Dashboard = () => {
             <TabsTrigger value="budget" className="flex items-center gap-2">
               <Target className="w-4 h-4" />
               Budget
+            </TabsTrigger>
+            <TabsTrigger value="achievements" className="flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+              Achievements
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4" />
@@ -69,6 +76,10 @@ const Dashboard = () => {
               <Smartphone className="w-4 h-4" />
               Payments
             </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <SettingsIcon className="w-4 h-4" />
+              Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="expenses" className="space-y-6">
@@ -81,6 +92,10 @@ const Dashboard = () => {
 
           <TabsContent value="budget" className="space-y-6">
             <BudgetGoals />
+          </TabsContent>
+
+          <TabsContent value="achievements" className="space-y-6">
+            <Gamification />
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-6">
@@ -104,6 +119,11 @@ const Dashboard = () => {
 
           <TabsContent value="payments" className="space-y-6">
             <PaymentIntegration />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Settings />
+            <DataBackup />
           </TabsContent>
         </Tabs>
       </main>
