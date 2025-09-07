@@ -5,12 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Plus, Filter } from 'lucide-react';
-import { ExpenseCharts } from '@/components/ExpenseCharts';
+import { Plus, BarChart3, Upload, Settings as SettingsIcon } from 'lucide-react';
+import { EnhancedExpenseCharts } from '@/components/EnhancedExpenseCharts';
 import { TransactionList } from '@/components/TransactionList';
+import { FileUploader } from '@/components/FileUploader';
+import { AutoCategorizationManager } from '@/components/AutoCategorizationManager';
+import { toast } from 'sonner';
 
 interface Transaction {
   id: string;
@@ -22,18 +25,9 @@ interface Transaction {
 }
 
 const categories = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Bills & Utilities',
-  'Healthcare',
-  'Education',
-  'Travel',
-  'Salary',
-  'Freelance',
-  'Investment',
-  'Other'
+  'Food', 'Transportation', 'Shopping', 'Entertainment', 
+  'Utilities', 'Healthcare', 'Education', 'Travel',
+  'Housing', 'Income', 'Investments', 'Other'
 ];
 
 export const ExpenseTracker = () => {
@@ -41,7 +35,6 @@ export const ExpenseTracker = () => {
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -58,14 +51,12 @@ export const ExpenseTracker = () => {
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
+      .eq('user_id', user.id)
       .order('date', { ascending: false });
 
     if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch transactions',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch transactions');
+      console.error('Error fetching transactions:', error);
     } else {
       setTransactions((data || []).map(item => ({
         id: item.id,
@@ -102,16 +93,10 @@ export const ExpenseTracker = () => {
       ]);
 
     if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to add transaction',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add transaction');
+      console.error('Error adding transaction:', error);
     } else {
-      toast({
-        title: 'Success',
-        description: 'Transaction added successfully',
-      });
+      toast.success('Transaction added successfully');
       setFormData({
         date: new Date().toISOString().split('T')[0],
         category: '',
@@ -165,108 +150,135 @@ export const ExpenseTracker = () => {
         </Card>
       </div>
 
-      {/* Add Transaction Button */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Transactions</h2>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Transaction
-        </Button>
-      </div>
+      {/* Main Tabs Interface */}
+      <Tabs defaultValue="transactions" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="upload">Import Data</TabsTrigger>
+          <TabsTrigger value="settings">Auto-Rules</TabsTrigger>
+        </TabsList>
 
-      {/* Add Transaction Form */}
-      {showAddForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Transaction</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Type</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value: 'income' | 'expense') =>
-                      setFormData({ ...formData, type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="income">Income</SelectItem>
-                      <SelectItem value="expense">Expense</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (₹)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Enter transaction details..."
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={loading || !formData.category}>
-                  {loading ? 'Adding...' : 'Add Transaction'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+        {/* Transactions Tab */}
+        <TabsContent value="transactions" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Recent Transactions</h2>
+            <Button onClick={() => setShowAddForm(!showAddForm)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Transaction
+            </Button>
+          </div>
 
-      {/* Charts */}
-      <ExpenseCharts transactions={transactions} />
+          {/* Add Transaction Form */}
+          {showAddForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Transaction</CardTitle>
+                <CardDescription>
+                  Manually add a new income or expense transaction
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Type</Label>
+                      <Select
+                        value={formData.type}
+                        onValueChange={(value: 'income' | 'expense') =>
+                          setFormData({ ...formData, type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="income">Income</SelectItem>
+                          <SelectItem value="expense">Expense</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Amount (₹)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        value={formData.amount}
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Enter transaction details..."
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={loading || !formData.category}>
+                      {loading ? 'Adding...' : 'Add Transaction'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Transactions List */}
-      <TransactionList transactions={transactions} onRefresh={fetchTransactions} />
+          {/* Transactions List */}
+          <TransactionList transactions={transactions} onRefresh={fetchTransactions} />
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <EnhancedExpenseCharts transactions={transactions} />
+        </TabsContent>
+
+        {/* File Upload Tab */}
+        <TabsContent value="upload">
+          <FileUploader onUploadComplete={fetchTransactions} />
+        </TabsContent>
+
+        {/* Auto-Categorization Settings Tab */}
+        <TabsContent value="settings">
+          <AutoCategorizationManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
