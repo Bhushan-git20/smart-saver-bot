@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      categorization_rules: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          keyword: string
+          priority: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keyword: string
+          priority?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keyword?: string
+          priority?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           context: Json | null
