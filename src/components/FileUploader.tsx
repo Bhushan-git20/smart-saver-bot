@@ -76,24 +76,52 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
     })).filter(t => t.date && t.description && t.amount > 0);
   };
 
+  const parseExcelDate = (value: any): string => {
+    if (!value) return '';
+    
+    // If it's already a string date, return it
+    if (typeof value === 'string') return value;
+    
+    // If it's an Excel serial date number
+    if (typeof value === 'number') {
+      const date = XLSX.SSF.parse_date_code(value);
+      if (date) {
+        return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+      }
+    }
+    
+    // Try to parse as date object
+    if (value instanceof Date) {
+      return value.toISOString().split('T')[0];
+    }
+    
+    return String(value);
+  };
+
   const parseExcel = (file: File): Promise<ParsedTransaction[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true, cellText: false });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: '' });
           
-          const transactions = jsonData.map((row: any) => ({
-            date: row.Date || row.date || row['Transaction Date'] || '',
-            description: row.Description || row.description || row.Narration || row['Transaction Details'] || '',
-            amount: Math.abs(parseFloat(row.Amount || row.amount || row['Debit Amount'] || row['Credit Amount'] || '0')),
-            type: (parseFloat(row.Amount || row.amount || '0') < 0 || row['Debit Amount']) ? 'expense' as const : 'income' as const,
-            category: 'Other'
-          })).filter(t => t.date && t.description && t.amount > 0);
+          const transactions = jsonData.map((row: any) => {
+            const dateValue = row.Date || row.date || row['Transaction Date'] || row['Date'] || row['VALUE DATE'] || row['TRANSACTION DATE'];
+            const description = String(row.Description || row.description || row.Narration || row['Transaction Details'] || row['DESCRIPTION'] || row['PARTICULARS'] || '').trim();
+            const amountValue = row.Amount || row.amount || row['Debit Amount'] || row['Credit Amount'] || row['AMOUNT'] || row['WITHDRAWAL AMT'] || row['DEPOSIT AMT'] || '0';
+            
+            return {
+              date: parseExcelDate(dateValue),
+              description: description,
+              amount: Math.abs(parseFloat(String(amountValue).replace(/[^0-9.-]/g, ''))),
+              type: (parseFloat(String(row.Amount || row.amount || '0').replace(/[^0-9.-]/g, '')) < 0 || row['Debit Amount'] || row['WITHDRAWAL AMT']) ? 'expense' as const : 'income' as const,
+              category: 'Other'
+            };
+          }).filter(t => t.date && t.description && t.amount > 0);
           
           resolve(transactions);
         } catch (error) {
