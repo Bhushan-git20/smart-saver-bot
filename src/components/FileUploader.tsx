@@ -28,6 +28,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
 
   const categorizeTransaction = async (description: string): Promise<string> => {
     // Get categorization rules
@@ -134,8 +135,12 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user) {
+      toast.error('Please select a file');
+      return;
+    }
 
+    setSelectedFileName(file.name);
     setIsUploading(true);
     setUploadProgress(0);
 
@@ -151,6 +156,10 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
         throw new Error('Unsupported file format. Please upload CSV or Excel files.');
       }
 
+      if (transactions.length === 0) {
+        throw new Error('No valid transactions found in the file. Please check the file format.');
+      }
+
       setUploadProgress(50);
 
       // Auto-categorize transactions
@@ -162,12 +171,16 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       setParsedTransactions(transactions);
       setShowPreview(true);
       setUploadProgress(100);
+      toast.success(`Successfully parsed ${transactions.length} transactions from ${file.name}`);
       
     } catch (error) {
       console.error('Error parsing file:', error);
-      toast.error('Failed to parse file. Please check the format.');
+      toast.error(error instanceof Error ? error.message : 'Failed to parse file. Please check the format.');
+      setSelectedFileName('');
     } finally {
       setIsUploading(false);
+      // Reset the input
+      event.target.value = '';
     }
   }, [user]);
 
@@ -194,6 +207,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       toast.success(`Successfully imported ${parsedTransactions.length} transactions`);
       setShowPreview(false);
       setParsedTransactions([]);
+      setSelectedFileName('');
       onUploadComplete();
     } catch (error) {
       console.error('Error saving transactions:', error);
@@ -221,7 +235,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Drop your bank statement file here or click to browse
+                  {selectedFileName ? `Selected: ${selectedFileName}` : 'Drop your bank statement file here or click to browse'}
                 </p>
                 <input
                   type="file"
@@ -232,8 +246,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
                   disabled={isUploading}
                 />
                 <label htmlFor="file-upload">
-                  <Button variant="outline" className="cursor-pointer" disabled={isUploading}>
-                    Choose File
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    className="cursor-pointer" 
+                    disabled={isUploading}
+                    asChild
+                  >
+                    <span>{selectedFileName ? 'Choose Different File' : 'Choose File'}</span>
                   </Button>
                 </label>
               </div>
@@ -304,7 +324,10 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
               <Button onClick={confirmUpload} disabled={isUploading}>
                 Confirm Import ({parsedTransactions.length} transactions)
               </Button>
-              <Button variant="outline" onClick={() => setShowPreview(false)}>
+              <Button variant="outline" onClick={() => {
+                setShowPreview(false);
+                setSelectedFileName('');
+              }}>
                 Cancel
               </Button>
             </div>
