@@ -1,73 +1,242 @@
-# Welcome to your Lovable project
+# AI Financial Advisor - Smart Expense Analyzer & Visualizer
 
-## Project info
+[![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-blue)](https://lovable.dev)
+[![React](https://img.shields.io/badge/React-18.3-blue)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-green)](https://supabase.com/)
+
+A comprehensive AI-powered financial management platform that helps you track expenses, analyze spending patterns, manage investments, and make informed financial decisions with intelligent chatbot assistance.
+
+![AI Financial Advisor Demo](https://lovable.dev/opengraph-image-p98pqg.png)
+
+## 🚀 Live Demo
 
 **URL**: https://lovable.dev/projects/7a3b636d-576d-47ca-b94e-a87ccc85c580
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+### 📊 Expense Tracking & Analytics
+- **Manual Entry**: Add income and expenses with custom categories
+- **CSV/Excel Import**: Upload bank statements and UPI transaction exports
+- **Auto-Categorization**: Smart AI-powered transaction categorization
+- **Visual Charts**: Interactive expense breakdown by category, time period
+- **PDF Export**: Download detailed expense reports with charts
 
-**Use Lovable**
+### 🤖 AI-Powered Chatbot
+- **Natural Language Queries**: Ask questions about your finances
+- **Context-Aware**: Analyzes your transaction history to provide personalized insights
+- **Spending Insights**: "How much did I spend on food last month?"
+- **Budget Recommendations**: Get AI-generated budget suggestions
+- **Expense Predictions**: Forecast future expenses based on historical data
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7a3b636d-576d-47ca-b94e-a87ccc85c580) and start prompting.
+### 💰 Budget Management
+- **Category Budgets**: Set monthly spending limits per category
+- **Progress Tracking**: Real-time budget vs. actual spending
+- **Alerts**: Notifications when approaching or exceeding budgets
+- **Visual Goals**: Progress bars and indicators
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📈 Investment Tracking
+- **Portfolio Manager**: Track stocks, mutual funds, bonds, and FDs
+- **Live Market Data**: Real-time price updates
+- **Performance Analytics**: Track gains/losses and portfolio performance
+- **Risk Assessment**: Based on user's risk profile
 
-**Use your preferred IDE**
+### 🎮 Gamification
+- **Achievements**: Earn badges for financial milestones
+- **Streaks**: Track consecutive days of expense logging
+- **Leaderboards**: Compare progress (optional)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 🔄 Recurring Transactions
+- **Auto-Scheduling**: Set up recurring income/expenses
+- **Smart Reminders**: Get notified for upcoming bills
+- **Automatic Processing**: Transactions added automatically
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🧾 Receipt Scanner (OCR)
+- **Image Upload**: Scan physical receipts
+- **Text Extraction**: AI-powered OCR to extract transaction details
+- **Auto-Fill**: Populate transaction forms from scanned data
 
-Follow these steps:
+### 🌍 Multi-Language Support
+- English
+- Hindi (हिंदी)
+- More languages coming soon
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+### 🎨 Theme Support
+- Light mode
+- Dark mode
+- System preference (auto)
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18** - Modern UI framework
+- **TypeScript** - Type-safe development
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - Beautiful, accessible component library
+- **Recharts** - Data visualization
+- **i18next** - Internationalization
+
+### Backend
+- **Supabase** - PostgreSQL database, authentication, edge functions
+- **Row Level Security** - Secure data access
+- **Edge Functions** - Serverless AI integration
+
+### AI & Analysis
+- **Hugging Face API** - Advanced language models
+- **OpenAI API** - GPT models for financial insights
+- **Tesseract.js** - OCR for receipt scanning
+
+### File Processing
+- **XLSX** - Excel file parsing
+- **PapaParse** - CSV parsing
+- **jsPDF** - PDF generation
+
+## 📦 Installation
+
+### Prerequisites
+- Node.js 18+ and npm (or use [nvm](https://github.com/nvm-sh/nvm))
+- Git
+- A Supabase account (for backend)
+
+### Local Development
+
+1. **Clone the repository**
+```bash
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+2. **Install dependencies**
+```bash
+npm install
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. **Set up environment variables**
+Create a `.env` file with your Supabase credentials (already configured if using Lovable)
+
+4. **Start the development server**
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Built files will be in the `dist/` directory.
 
-## What technologies are used for this project?
+## 🚀 Deployment
 
-This project is built with:
+### Quick Deploy with Lovable
+1. Open [Lovable Project](https://lovable.dev/projects/7a3b636d-576d-47ca-b94e-a87ccc85c580)
+2. Click **Share → Publish**
+3. Your app will be live instantly!
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Custom Domain
+Navigate to **Project > Settings > Domains** and connect your domain.
+[Read more](https://docs.lovable.dev/tips-tricks/custom-domain)
 
-## How can I deploy this project?
+### Alternative Deployment Options
+- **Vercel**: `vercel deploy`
+- **Netlify**: Connect GitHub repo and deploy
+- **Render**: Deploy as static site
 
-Simply open [Lovable](https://lovable.dev/projects/7a3b636d-576d-47ca-b94e-a87ccc85c580) and click on Share -> Publish.
+## 🔐 Security Features
 
-## Can I connect a custom domain to my Lovable project?
+- **Row Level Security (RLS)**: All user data is protected at the database level
+- **Secure Authentication**: Email/password authentication via Supabase
+- **API Key Management**: Secure storage of external API keys
+- **Data Encryption**: All sensitive data encrypted in transit and at rest
 
-Yes, you can!
+## 📖 Usage Guide
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Getting Started
+1. **Sign Up**: Create an account on the landing page
+2. **Add Transactions**: Manually add your first few transactions
+3. **Import Statements**: Upload bank statements (CSV/Excel) for bulk import
+4. **Set Budgets**: Define monthly spending limits for categories
+5. **Chat with AI**: Ask questions about your spending patterns
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Importing Bank Statements
+Supported formats:
+- CSV files from banks (HDFC, SBI, ICICI, etc.)
+- Excel files (.xlsx, .xls)
+- UPI app exports (PhonePe, Google Pay, Paytm)
+
+The system auto-detects columns for Date, Description, and Amount.
+
+### Using AI Chatbot
+Example queries:
+- "How much did I spend on groceries last month?"
+- "Compare my spending this month vs last month"
+- "What's my biggest expense category?"
+- "Help me create a budget for next month"
+- "Am I overspending on food?"
+
+## 🗺️ Roadmap
+
+### Phase 1: Core Features ✅
+- [x] Expense tracking
+- [x] Manual transaction entry
+- [x] CSV/Excel import
+- [x] Auto-categorization
+- [x] Visual charts
+- [x] Budget goals
+- [x] AI chatbot
+
+### Phase 2: Advanced Features ✅
+- [x] Investment tracking
+- [x] Portfolio management
+- [x] Receipt OCR
+- [x] Gamification
+- [x] Recurring transactions
+- [x] PDF export
+
+### Phase 3: Integrations (Coming Soon)
+- [ ] Live bank API integration (Open Banking)
+- [ ] Direct UPI sync
+- [ ] Real-time stock prices
+- [ ] Email/Slack notifications
+- [ ] Google Calendar integration
+- [ ] WhatsApp/Telegram bot
+
+### Phase 4: Advanced AI (Planned)
+- [ ] Predictive spending alerts
+- [ ] Personalized investment recommendations
+- [ ] Anomaly detection (unusual transactions)
+- [ ] Tax optimization suggestions
+- [ ] Financial goal planning
+
+## 🤝 Contributing
+
+This is a Lovable project. To contribute:
+1. Make changes via [Lovable UI](https://lovable.dev/projects/7a3b636d-576d-47ca-b94e-a87ccc85c580)
+2. Or clone the repo and push changes directly
+3. All changes sync automatically
+
+## 📄 License
+
+This project is built with Lovable. See [Lovable Terms](https://lovable.dev/terms) for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Lovable](https://lovable.dev)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Backend powered by [Supabase](https://supabase.com/)
+- AI models from [Hugging Face](https://huggingface.co/) and [OpenAI](https://openai.com/)
+
+## 📞 Support
+
+For issues or questions:
+- GitHub Issues: [Report a bug](https://github.com/your-repo/issues)
+- Lovable Community: [Discord](https://discord.com/invite/lovable)
+- Documentation: [Lovable Docs](https://docs.lovable.dev)
+
+---
+
+**Made with ❤️ using Lovable**

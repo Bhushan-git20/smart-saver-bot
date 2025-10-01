@@ -42,10 +42,6 @@ export const Settings = () => {
         title: t('common.success'),
         description: 'Monthly report generated successfully!',
       });
-
-      // In a real implementation, you'd send this via email
-      // For demo purposes, we'll show the data
-      console.log('Monthly Report Data:', data);
       
     } catch (error: any) {
       toast({

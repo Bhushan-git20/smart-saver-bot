@@ -35,7 +35,7 @@ export const ReceiptScanner = () => {
   };
 
   const parseReceiptText = (text: string): ExtractedData => {
-    console.log('OCR Text:', text);
+    // Parse OCR text to extract transaction details
     
     // Extract amount (look for currency patterns)
     const amountPatterns = [
