@@ -68,13 +68,60 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
 
   const parseCSV = (content: string): ParsedTransaction[] => {
     const result = Papa.parse(content, { header: true, skipEmptyLines: true });
-    return result.data.map((row: any) => ({
-      date: row.Date || row.date || row['Transaction Date'] || '',
-      description: row.Description || row.description || row.Narration || row['Transaction Details'] || '',
-      amount: Math.abs(parseFloat(row.Amount || row.amount || row['Debit Amount'] || row['Credit Amount'] || '0')),
-      type: (parseFloat(row.Amount || row.amount || '0') < 0 || row['Debit Amount']) ? 'expense' as const : 'income' as const,
-      category: 'Other'
-    })).filter(t => t.date && t.description && t.amount > 0);
+    
+    if (result.errors.length > 0) {
+      console.error('CSV parsing errors:', result.errors);
+    }
+
+    const transactions = result.data.map((row: any, index: number) => {
+      // Case-insensitive column matching
+      const rowKeys = Object.keys(row);
+      const getColumn = (names: string[]) => {
+        for (const name of names) {
+          const key = rowKeys.find(k => k.toLowerCase() === name.toLowerCase());
+          if (key && row[key]) return row[key];
+        }
+        return '';
+      };
+
+      const dateValue = getColumn(['date', 'transaction date', 'value date', 'posting date', 'txn date']);
+      const description = getColumn(['description', 'narration', 'transaction details', 'particulars', 'remarks', 'details']);
+      const debitAmount = getColumn(['debit', 'debit amount', 'withdrawal', 'withdrawal amt', 'debit amt']);
+      const creditAmount = getColumn(['credit', 'credit amount', 'deposit', 'deposit amt', 'credit amt']);
+      const amount = getColumn(['amount', 'transaction amount', 'txn amount']);
+
+      let finalAmount = 0;
+      let transactionType: 'income' | 'expense' = 'expense';
+
+      if (debitAmount) {
+        finalAmount = Math.abs(parseFloat(String(debitAmount).replace(/[^0-9.-]/g, '')));
+        transactionType = 'expense';
+      } else if (creditAmount) {
+        finalAmount = Math.abs(parseFloat(String(creditAmount).replace(/[^0-9.-]/g, '')));
+        transactionType = 'income';
+      } else if (amount) {
+        const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]/g, ''));
+        finalAmount = Math.abs(parsedAmount);
+        transactionType = parsedAmount < 0 ? 'expense' : 'income';
+      }
+
+      return {
+        date: String(dateValue).trim(),
+        description: String(description).trim(),
+        amount: finalAmount,
+        type: transactionType,
+        category: 'Other'
+      };
+    }).filter(t => {
+      const isValid = t.date && t.description && t.amount > 0;
+      if (!isValid) {
+        console.log('Filtered out invalid transaction:', t);
+      }
+      return isValid;
+    });
+
+    console.log(`Parsed ${transactions.length} valid transactions from CSV`);
+    return transactions;
   };
 
   const parseExcelDate = (value: any): string => {
@@ -110,25 +157,66 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: '' });
           
-          const transactions = jsonData.map((row: any) => {
-            const dateValue = row.Date || row.date || row['Transaction Date'] || row['Date'] || row['VALUE DATE'] || row['TRANSACTION DATE'];
-            const description = String(row.Description || row.description || row.Narration || row['Transaction Details'] || row['DESCRIPTION'] || row['PARTICULARS'] || '').trim();
-            const amountValue = row.Amount || row.amount || row['Debit Amount'] || row['Credit Amount'] || row['AMOUNT'] || row['WITHDRAWAL AMT'] || row['DEPOSIT AMT'] || '0';
-            
+          console.log('Excel columns found:', jsonData.length > 0 ? Object.keys(jsonData[0]) : 'No data');
+          
+          const transactions = jsonData.map((row: any, index: number) => {
+            // Case-insensitive column matching
+            const rowKeys = Object.keys(row);
+            const getColumn = (names: string[]) => {
+              for (const name of names) {
+                const key = rowKeys.find(k => k.toLowerCase() === name.toLowerCase());
+                if (key && row[key]) return row[key];
+              }
+              return '';
+            };
+
+            const dateValue = getColumn(['date', 'transaction date', 'value date', 'posting date', 'txn date', 'transaction_date']);
+            const description = getColumn(['description', 'narration', 'transaction details', 'particulars', 'remarks', 'details', 'transaction_details']);
+            const debitAmount = getColumn(['debit', 'debit amount', 'withdrawal', 'withdrawal amt', 'debit amt', 'debit_amount']);
+            const creditAmount = getColumn(['credit', 'credit amount', 'deposit', 'deposit amt', 'credit amt', 'credit_amount']);
+            const amount = getColumn(['amount', 'transaction amount', 'txn amount', 'transaction_amount']);
+
+            let finalAmount = 0;
+            let transactionType: 'income' | 'expense' = 'expense';
+
+            if (debitAmount) {
+              finalAmount = Math.abs(parseFloat(String(debitAmount).replace(/[^0-9.-]/g, '')));
+              transactionType = 'expense';
+            } else if (creditAmount) {
+              finalAmount = Math.abs(parseFloat(String(creditAmount).replace(/[^0-9.-]/g, '')));
+              transactionType = 'income';
+            } else if (amount) {
+              const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]/g, ''));
+              finalAmount = Math.abs(parsedAmount);
+              transactionType = parsedAmount < 0 ? 'expense' : 'income';
+            }
+
+            const parsedDate = parseExcelDate(dateValue);
+            const parsedDescription = String(description).trim();
+
             return {
-              date: parseExcelDate(dateValue),
-              description: description,
-              amount: Math.abs(parseFloat(String(amountValue).replace(/[^0-9.-]/g, ''))),
-              type: (parseFloat(String(row.Amount || row.amount || '0').replace(/[^0-9.-]/g, '')) < 0 || row['Debit Amount'] || row['WITHDRAWAL AMT']) ? 'expense' as const : 'income' as const,
+              date: parsedDate,
+              description: parsedDescription,
+              amount: finalAmount,
+              type: transactionType,
               category: 'Other'
             };
-          }).filter(t => t.date && t.description && t.amount > 0);
+          }).filter(t => {
+            const isValid = t.date && t.description && t.amount > 0;
+            if (!isValid) {
+              console.log('Filtered out invalid Excel transaction:', t);
+            }
+            return isValid;
+          });
           
+          console.log(`Parsed ${transactions.length} valid transactions from Excel`);
           resolve(transactions);
         } catch (error) {
+          console.error('Excel parsing error:', error);
           reject(error);
         }
       };
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsArrayBuffer(file);
     });
   };
