@@ -67,7 +67,28 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
   };
 
   const parseCSV = (content: string): ParsedTransaction[] => {
-    const result = Papa.parse(content, { header: true, skipEmptyLines: true });
+    // First, try to detect if this is a bank statement with header rows
+    const lines = content.split('\n');
+    let headerRowIndex = -1;
+    
+    // Find the header row (look for common column names)
+    for (let i = 0; i < Math.min(30, lines.length); i++) {
+      const line = lines[i].toLowerCase();
+      if ((line.includes('date') || line.includes('post date')) && 
+          (line.includes('debit') || line.includes('credit') || line.includes('amount'))) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+
+    let csvContent = content;
+    if (headerRowIndex > 0) {
+      // Skip header rows and keep only data rows
+      csvContent = lines.slice(headerRowIndex).join('\n');
+      console.log(`Detected bank statement format, skipping ${headerRowIndex} header rows`);
+    }
+
+    const result = Papa.parse(csvContent, { header: true, skipEmptyLines: true });
     
     if (result.errors.length > 0) {
       console.error('CSV parsing errors:', result.errors);
@@ -78,29 +99,45 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       const rowKeys = Object.keys(row);
       const getColumn = (names: string[]) => {
         for (const name of names) {
-          const key = rowKeys.find(k => k.toLowerCase() === name.toLowerCase());
+          const key = rowKeys.find(k => k.toLowerCase().includes(name.toLowerCase()));
           if (key && row[key]) return row[key];
         }
         return '';
       };
 
-      const dateValue = getColumn(['date', 'transaction date', 'value date', 'posting date', 'txn date']);
-      const description = getColumn(['description', 'narration', 'transaction details', 'particulars', 'remarks', 'details']);
-      const debitAmount = getColumn(['debit', 'debit amount', 'withdrawal', 'withdrawal amt', 'debit amt']);
-      const creditAmount = getColumn(['credit', 'credit amount', 'deposit', 'deposit amt', 'credit amt']);
+      const dateValue = getColumn(['post date', 'date', 'transaction date', 'value date', 'posting date', 'txn date']);
+      const description = getColumn(['narration', 'description', 'transaction details', 'particulars', 'remarks', 'details']);
+      const debitAmount = getColumn(['debit', 'withdrawal', 'withdrawal amt', 'debit amt']);
+      const creditAmount = getColumn(['credit', 'deposit', 'deposit amt', 'credit amt']);
       const amount = getColumn(['amount', 'transaction amount', 'txn amount']);
 
       let finalAmount = 0;
       let transactionType: 'income' | 'expense' = 'expense';
 
+      // Clean and parse amounts (remove commas, currency symbols, etc.)
+      const cleanAmount = (val: string) => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+      };
+
       if (debitAmount) {
-        finalAmount = Math.abs(parseFloat(String(debitAmount).replace(/[^0-9.-]/g, '')));
-        transactionType = 'expense';
-      } else if (creditAmount) {
-        finalAmount = Math.abs(parseFloat(String(creditAmount).replace(/[^0-9.-]/g, '')));
-        transactionType = 'income';
-      } else if (amount) {
-        const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]/g, ''));
+        const debitVal = cleanAmount(debitAmount);
+        if (debitVal > 0) {
+          finalAmount = debitVal;
+          transactionType = 'expense';
+        }
+      }
+      
+      if (creditAmount) {
+        const creditVal = cleanAmount(creditAmount);
+        if (creditVal > 0) {
+          finalAmount = creditVal;
+          transactionType = 'income';
+        }
+      }
+      
+      if (finalAmount === 0 && amount) {
+        const parsedAmount = cleanAmount(amount);
         finalAmount = Math.abs(parsedAmount);
         transactionType = parsedAmount < 0 ? 'expense' : 'income';
       }
