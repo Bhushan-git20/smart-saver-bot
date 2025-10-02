@@ -5,15 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, Smartphone, CreditCard, Building2, Plus, FileText, FileSpreadsheet } from 'lucide-react';
+import { Smartphone, CreditCard, Building2, Plus, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ReceiptScanner } from './ReceiptScanner';
 
 export const PaymentIntegration = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
   const [bankDetails, setBankDetails] = useState({
     accountNumber: '',
     ifscCode: '',
@@ -25,144 +23,6 @@ export const PaymentIntegration = () => {
   });
   const { toast } = useToast();
   const { user } = useAuth();
-
-  // File parser utilities
-  const parseCSV = (text: string) => {
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length < 2) throw new Error('CSV file must have at least 2 lines');
-    
-    const transactions = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      if (values.length >= 3) {
-        const amount = parseFloat(values[2]) || 0;
-        transactions.push({
-          user_id: user!.id,
-          date: values[0] || new Date().toISOString().split('T')[0],
-          description: values[1] || 'Imported transaction',
-          amount: Math.abs(amount),
-          type: amount >= 0 ? 'income' : 'expense',
-          category: values[3] || 'Other'
-        });
-      }
-    }
-    return transactions;
-  };
-
-  const parseJSON = (text: string) => {
-    const data = JSON.parse(text);
-    const transactions = [];
-    
-    // Handle different JSON structures
-    const items = Array.isArray(data) ? data : data.transactions || data.data || [data];
-    
-    for (const item of items) {
-      if (item.amount !== undefined) {
-        const amount = parseFloat(item.amount) || 0;
-        transactions.push({
-          user_id: user!.id,
-          date: item.date || item.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0],
-          description: item.description || item.merchant || item.title || 'Imported transaction',
-          amount: Math.abs(amount),
-          type: amount >= 0 ? 'income' : 'expense',
-          category: item.category || item.type || 'Other'
-        });
-      }
-    }
-    return transactions;
-  };
-
-  const parseTXT = (text: string) => {
-    const lines = text.split('\n').filter(line => line.trim());
-    const transactions = [];
-    
-    for (const line of lines) {
-      // Try to match common text patterns
-      const patterns = [
-        /(\d{4}-\d{2}-\d{2})\s+(.+?)\s+([+-]?\d+\.?\d*)/,
-        /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d+\.?\d*)/,
-        /(.+?)\s+(\d{4}-\d{2}-\d{2})\s+([+-]?\d+\.?\d*)/
-      ];
-      
-      for (const pattern of patterns) {
-        const match = line.match(pattern);
-        if (match) {
-          const amount = parseFloat(match[3]) || 0;
-          transactions.push({
-            user_id: user!.id,
-            date: match[1] || new Date().toISOString().split('T')[0],
-            description: match[2]?.trim() || 'Imported transaction',
-            amount: Math.abs(amount),
-            type: amount >= 0 ? 'income' : 'expense',
-            category: 'Other'
-          });
-          break;
-        }
-      }
-    }
-    return transactions;
-  };
-
-  const handleFileUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!importFile || !user) return;
-
-    setIsLoading(true);
-    try {
-      const fileExtension = importFile.name.split('.').pop()?.toLowerCase();
-      const text = await importFile.text();
-      let transactions = [];
-
-      switch (fileExtension) {
-        case 'csv':
-          transactions = parseCSV(text);
-          break;
-        case 'json':
-          transactions = parseJSON(text);
-          break;
-        case 'txt':
-          transactions = parseTXT(text);
-          break;
-        default:
-          // Try to auto-detect format
-          try {
-            if (text.startsWith('[') || text.startsWith('{')) {
-              transactions = parseJSON(text);
-            } else if (text.includes(',')) {
-              transactions = parseCSV(text);
-            } else {
-              transactions = parseTXT(text);
-            }
-          } catch {
-            throw new Error('Unsupported file format or invalid file structure');
-          }
-      }
-
-      if (transactions.length === 0) {
-        throw new Error('No valid transactions found in the file');
-      }
-
-      const { error } = await supabase
-        .from('transactions')
-        .insert(transactions);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: `Imported ${transactions.length} transactions from ${fileExtension?.toUpperCase() || 'file'}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Import Error',
-        description: error.message || 'Failed to import file. Please check the file format.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-      setImportFile(null);
-    }
-  };
 
   const handleBankLinking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,12 +82,8 @@ export const PaymentIntegration = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="csv" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="csv" className="flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4" />
-                File Import
-              </TabsTrigger>
+          <Tabs defaultValue="ocr" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="ocr" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Receipt OCR
@@ -242,45 +98,13 @@ export const PaymentIntegration = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="csv" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Import Transaction Files
-                  </CardTitle>
-                  <CardDescription>
-                    Upload transaction files in multiple formats: CSV, JSON, TXT, Excel. 
-                    Supports various bank statement and payment app export formats.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleFileUpload} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="importFile">Transaction File</Label>
-                      <Input
-                        id="importFile"
-                        type="file"
-                        accept=".csv,.json,.txt,.xlsx,.xls,.tsv"
-                        onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                        required
-                      />
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p><strong>Supported formats:</strong> CSV, JSON, TXT, Excel</p>
-                        <p><strong>CSV format:</strong> Date, Description, Amount, Category</p>
-                        <p><strong>JSON format:</strong> {"{"}"amount", "date", "description", "category"{"}"}</p>
-                        <p><strong>TXT format:</strong> Any text file with transaction data</p>
-                      </div>
-                    </div>
-                    <Button type="submit" disabled={!importFile || isLoading} className="w-full">
-                      {isLoading ? 'Importing...' : 'Import Transactions'}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             <TabsContent value="ocr" className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>💡 Import Bank Statements:</strong> To import CSV or Excel files, please go to the <strong>Expenses</strong> tab and click on <strong>Import Data</strong>. 
+                  The import tool supports multiple formats including CSV, Excel, and complex bank statements.
+                </p>
+              </div>
               <ReceiptScanner />
             </TabsContent>
 
