@@ -39,8 +39,8 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 port = 54327
-site_url = "http://127.0.0.1:3000"
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+site_url = "https://7a3b636d-576d-47ca-b94e-a87ccc85c580.lovableproject.com"
+additional_redirect_urls = ["https://7a3b636d-576d-47ca-b94e-a87ccc85c580.lovableproject.com"]
 jwt_expiry = 3600
 refresh_token_rotation_enabled = true
 refresh_token_reuse_interval = 10
