@@ -20,6 +20,7 @@ interface ParsedTransaction {
   amount: number;
   type: 'income' | 'expense';
   category: string;
+  balance?: number;
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) => {
@@ -110,6 +111,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       const debitAmount = getColumn(['debit', 'withdrawal', 'withdrawal amt', 'debit amt']);
       const creditAmount = getColumn(['credit', 'deposit', 'deposit amt', 'credit amt']);
       const amount = getColumn(['amount', 'transaction amount', 'txn amount']);
+      const balanceValue = getColumn(['balance', 'closing balance', 'available balance', 'running balance']);
 
       let finalAmount = 0;
       let transactionType: 'income' | 'expense' = 'expense';
@@ -142,12 +144,15 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
         transactionType = parsedAmount < 0 ? 'expense' : 'income';
       }
 
+      const cleanedBalance = balanceValue ? cleanAmount(balanceValue) : undefined;
+
       return {
         date: String(dateValue).trim(),
         description: String(description).trim(),
         amount: finalAmount,
         type: transactionType,
-        category: 'Other'
+        category: 'Other',
+        balance: cleanedBalance
       };
     }).filter(t => {
       const isValid = t.date && t.description && t.amount > 0;
@@ -212,6 +217,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
             const debitAmount = getColumn(['debit', 'debit amount', 'withdrawal', 'withdrawal amt', 'debit amt', 'debit_amount']);
             const creditAmount = getColumn(['credit', 'credit amount', 'deposit', 'deposit amt', 'credit amt', 'credit_amount']);
             const amount = getColumn(['amount', 'transaction amount', 'txn amount', 'transaction_amount']);
+            const balanceValue = getColumn(['balance', 'closing balance', 'available balance', 'running balance', 'balance_amount']);
 
             let finalAmount = 0;
             let transactionType: 'income' | 'expense' = 'expense';
@@ -230,13 +236,15 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
 
             const parsedDate = parseExcelDate(dateValue);
             const parsedDescription = String(description).trim();
+            const parsedBalance = balanceValue ? parseFloat(String(balanceValue).replace(/[^0-9.-]/g, '')) : undefined;
 
             return {
               date: parsedDate,
               description: parsedDescription,
               amount: finalAmount,
               type: transactionType,
-              category: 'Other'
+              category: 'Other',
+              balance: parsedBalance
             };
           }).filter(t => {
             const isValid = t.date && t.description && t.amount > 0;
@@ -320,7 +328,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
         description: t.description,
         amount: t.amount,
         type: t.type,
-        category: t.category
+        category: t.category,
+        balance: t.balance
       }));
 
       const { error } = await supabase
@@ -418,6 +427,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
                     <th className="p-2 text-left">Amount</th>
                     <th className="p-2 text-left">Type</th>
                     <th className="p-2 text-left">Category</th>
+                    <th className="p-2 text-left">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -434,6 +444,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
                         </span>
                       </td>
                       <td className="p-2">{transaction.category}</td>
+                      <td className="p-2">{transaction.balance !== undefined ? `₹${transaction.balance.toFixed(2)}` : '-'}</td>
                     </tr>
                   ))}
                 </tbody>
