@@ -317,6 +317,22 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
     }
   }, [user]);
 
+  const formatDateForDB = (dateStr: string): string => {
+    // If already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // Try to parse the date
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    
+    // If parsing fails, return today's date as fallback
+    return new Date().toISOString().split('T')[0];
+  };
+
   const confirmUpload = async () => {
     if (!user || parsedTransactions.length === 0) return;
 
@@ -324,7 +340,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
     try {
       const transactionsToInsert = parsedTransactions.map(t => ({
         user_id: user.id,
-        date: new Date(t.date).toISOString().split('T')[0],
+        date: formatDateForDB(t.date),
         description: t.description,
         amount: t.amount,
         type: t.type,
