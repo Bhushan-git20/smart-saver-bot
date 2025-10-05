@@ -58,3 +58,6 @@ inspector_port = 5432
 
 [functions.ai-financial-chat]
 verify_jwt = true
+
+[functions.process-receipt]
+verify_jwt = true

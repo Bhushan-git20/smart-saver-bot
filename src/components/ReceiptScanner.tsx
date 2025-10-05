@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Upload, Loader2, CheckCircle } from 'lucide-react';
-import { createWorker } from 'tesseract.js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
+import { SecurityUtils } from '@/utils/security';
+import { ValidationUtils } from '@/utils/validation';
 
 interface ExtractedData {
   amount: string;
@@ -28,10 +29,38 @@ export const ReceiptScanner = () => {
   const { t } = useTranslation();
 
   const extractTextFromImage = async (imageFile: File): Promise<string> => {
-    const worker = await createWorker('eng');
-    const { data: { text } } = await worker.recognize(imageFile);
-    await worker.terminate();
-    return text;
+    // Validate file
+    const validation = SecurityUtils.validateFileUpload(imageFile, {
+      maxSizeMB: 10,
+      allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    });
+
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Convert file to base64
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          
+          // Call Edge Function for OCR processing
+          const { data, error } = await supabase.functions.invoke('process-receipt', {
+            body: { image: base64 },
+          });
+
+          if (error) throw error;
+          
+          resolve(data.text);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(imageFile);
+    });
   };
 
   const parseReceiptText = (text: string): ExtractedData => {
@@ -159,6 +188,18 @@ export const ReceiptScanner = () => {
     if (!extractedData || !user) return;
 
     try {
+      // Validate inputs
+      const sanitizedDescription = ValidationUtils.sanitizeString(extractedData.description);
+      const amount = parseFloat(extractedData.amount);
+      
+      if (!ValidationUtils.isValidAmount(amount)) {
+        throw new Error('Invalid amount');
+      }
+      
+      if (!ValidationUtils.isValidDate(extractedData.date)) {
+        throw new Error('Invalid date');
+      }
+
       const { error } = await supabase
         .from('transactions')
         .insert({
@@ -166,8 +207,8 @@ export const ReceiptScanner = () => {
           date: extractedData.date,
           category: extractedData.category,
           type: 'expense',
-          amount: parseFloat(extractedData.amount) || 0,
-          description: `Receipt: ${extractedData.description}`
+          amount,
+          description: ValidationUtils.limitLength(`Receipt: ${sanitizedDescription}`, 200)
         });
 
       if (error) throw error;
