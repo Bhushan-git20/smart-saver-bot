@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { MonitoringService } from '@/services/monitoring.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -55,17 +57,12 @@ export const PortfolioTracker = () => {
   }, [user]);
 
   const fetchHoldings = async () => {
+    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('portfolio_holdings')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setHoldings((data || []) as PortfolioHolding[]);
+      const data = await SupabaseService.getPortfolioHoldings(user.id);
+      setHoldings(data as PortfolioHolding[]);
     } catch (error) {
-      console.error('Error fetching portfolio holdings:', error);
+      MonitoringService.captureError(error as Error, { component: 'PortfolioTracker', action: 'fetchHoldings' });
       toast({
         title: "Error",
         description: "Failed to fetch portfolio holdings",
@@ -81,11 +78,32 @@ export const PortfolioTracker = () => {
     
     if (!user) return;
 
+    // Validate inputs
+    const sanitizedSymbol = ValidationUtils.sanitizeString(formData.symbol).toUpperCase();
+    const sanitizedName = ValidationUtils.sanitizeString(formData.name);
+    
+    if (!sanitizedSymbol || sanitizedSymbol.length > 20) {
+      toast({ title: "Error", description: "Invalid symbol", variant: "destructive" });
+      return;
+    }
+    if (!sanitizedName || sanitizedName.length > 200) {
+      toast({ title: "Error", description: "Invalid name", variant: "destructive" });
+      return;
+    }
+    if (!ValidationUtils.isValidAmount(parseFloat(formData.quantity))) {
+      toast({ title: "Error", description: "Invalid quantity", variant: "destructive" });
+      return;
+    }
+    if (!ValidationUtils.isValidAmount(parseFloat(formData.purchase_price))) {
+      toast({ title: "Error", description: "Invalid purchase price", variant: "destructive" });
+      return;
+    }
+
     try {
       const holdingData = {
         user_id: user.id,
-        symbol: formData.symbol.toUpperCase(),
-        name: formData.name,
+        symbol: sanitizedSymbol.substring(0, 20),
+        name: sanitizedName.substring(0, 200),
         type: formData.type,
         quantity: parseFloat(formData.quantity),
         purchase_price: parseFloat(formData.purchase_price),
@@ -94,11 +112,7 @@ export const PortfolioTracker = () => {
         last_updated: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('portfolio_holdings')
-        .insert([holdingData]);
-      
-      if (error) throw error;
+      await SupabaseService.createPortfolioHolding(holdingData);
       
       toast({
         title: "Success",
@@ -109,7 +123,7 @@ export const PortfolioTracker = () => {
       resetForm();
       fetchHoldings();
     } catch (error) {
-      console.error('Error saving portfolio holding:', error);
+      MonitoringService.captureError(error as Error, { component: 'PortfolioTracker', action: 'saveHolding' });
       toast({
         title: "Error",
         description: "Failed to add investment",

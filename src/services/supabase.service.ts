@@ -144,4 +144,81 @@ export class SupabaseService {
     if (error) throw new Error(`Failed to fetch categorization rules: ${error.message}`);
     return data || [];
   }
+
+  static async createCategorizationRule(rule: Database['public']['Tables']['categorization_rules']['Insert']) {
+    const { data, error } = await supabase
+      .from('categorization_rules')
+      .insert(rule)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create categorization rule: ${error.message}`);
+    return data;
+  }
+
+  static async updateCategorizationRule(id: string, updates: Partial<Database['public']['Tables']['categorization_rules']['Update']>) {
+    const { data, error } = await supabase
+      .from('categorization_rules')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to update categorization rule: ${error.message}`);
+    return data;
+  }
+
+  static async deleteCategorizationRule(id: string) {
+    const { error } = await supabase
+      .from('categorization_rules')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete categorization rule: ${error.message}`);
+  }
+
+  // Recurring Transactions
+  static async createRecurringTransaction(transaction: Database['public']['Tables']['recurring_transactions']['Insert']) {
+    const { data, error } = await supabase
+      .from('recurring_transactions')
+      .insert(transaction)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create recurring transaction: ${error.message}`);
+    return data;
+  }
+
+  static async updateRecurringTransaction(id: string, updates: Partial<Database['public']['Tables']['recurring_transactions']['Update']>) {
+    const { data, error } = await supabase
+      .from('recurring_transactions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to update recurring transaction: ${error.message}`);
+    return data;
+  }
+
+  static async deleteRecurringTransaction(id: string) {
+    const { error } = await supabase
+      .from('recurring_transactions')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete recurring transaction: ${error.message}`);
+  }
+
+  // Portfolio Holdings
+  static async createPortfolioHolding(holding: Database['public']['Tables']['portfolio_holdings']['Insert']) {
+    const { data, error} = await supabase
+      .from('portfolio_holdings')
+      .insert(holding)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create portfolio holding: ${error.message}`);
+    return data;
+  }
 }

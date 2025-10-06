@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Filter, Search } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { SupabaseService } from '@/services/supabase.service';
+import { MonitoringService } from '@/services/monitoring.service';
 import { useToast } from '@/hooks/use-toast';
 
 interface Transaction {
@@ -40,23 +41,20 @@ export const TransactionList = ({ transactions, onRefresh }: TransactionListProp
   });
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete transaction',
-        variant: 'destructive',
-      });
-    } else {
+    try {
+      await SupabaseService.deleteTransaction(id);
       toast({
         title: 'Success',
         description: 'Transaction deleted successfully',
       });
       onRefresh();
+    } catch (error) {
+      MonitoringService.captureError(error as Error, { component: 'TransactionList', action: 'deleteTransaction' });
+      toast({
+        title: 'Error',
+        description: 'Failed to delete transaction',
+        variant: 'destructive',
+      });
     }
   };
 

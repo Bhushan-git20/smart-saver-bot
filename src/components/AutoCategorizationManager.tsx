@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { MonitoringService } from '@/services/monitoring.service';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -45,17 +47,12 @@ export const AutoCategorizationManager: React.FC = () => {
   }, [user]);
 
   const fetchRules = async () => {
+    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('categorization_rules')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('priority', { ascending: false });
-
-      if (error) throw error;
-      setRules(data || []);
+      const data = await SupabaseService.getCategorizationRules(user.id);
+      setRules(data as CategorizationRule[]);
     } catch (error) {
-      console.error('Error fetching rules:', error);
+      MonitoringService.captureError(error as Error, { component: 'AutoCategorizationManager', action: 'fetchRules' });
       toast.error('Failed to fetch categorization rules');
     } finally {
       setIsLoading(false);
@@ -65,30 +62,29 @@ export const AutoCategorizationManager: React.FC = () => {
   const handleSubmit = async () => {
     if (!user || !formData.keyword || !formData.category) return;
 
+    // Validate input
+    const sanitizedKeyword = ValidationUtils.sanitizeString(formData.keyword);
+    if (!sanitizedKeyword || sanitizedKeyword.length > 100) {
+      toast.error('Invalid keyword');
+      return;
+    }
+
     try {
       if (editingRule) {
-        const { error } = await supabase
-          .from('categorization_rules')
-          .update({
-            keyword: formData.keyword,
-            category: formData.category,
-            priority: formData.priority
-          })
-          .eq('id', editingRule.id);
-
-        if (error) throw error;
+        await SupabaseService.updateCategorizationRule(editingRule.id, {
+          keyword: sanitizedKeyword,
+          category: formData.category,
+          priority: formData.priority
+        });
         toast.success('Rule updated successfully');
       } else {
-        const { error } = await supabase
-          .from('categorization_rules')
-          .insert({
-            user_id: user.id,
-            keyword: formData.keyword,
-            category: formData.category,
-            priority: formData.priority
-          });
-
-        if (error) throw error;
+        await SupabaseService.createCategorizationRule({
+          user_id: user.id,
+          keyword: sanitizedKeyword,
+          category: formData.category,
+          priority: formData.priority,
+          is_active: true
+        });
         toast.success('Rule added successfully');
       }
 
@@ -97,38 +93,28 @@ export const AutoCategorizationManager: React.FC = () => {
       setEditingRule(null);
       fetchRules();
     } catch (error) {
-      console.error('Error saving rule:', error);
+      MonitoringService.captureError(error as Error, { component: 'AutoCategorizationManager', action: 'saveRule' });
       toast.error('Failed to save rule');
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('categorization_rules')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await SupabaseService.deleteCategorizationRule(id);
       toast.success('Rule deleted successfully');
       fetchRules();
     } catch (error) {
-      console.error('Error deleting rule:', error);
+      MonitoringService.captureError(error as Error, { component: 'AutoCategorizationManager', action: 'deleteRule' });
       toast.error('Failed to delete rule');
     }
   };
 
   const toggleRuleStatus = async (rule: CategorizationRule) => {
     try {
-      const { error } = await supabase
-        .from('categorization_rules')
-        .update({ is_active: !rule.is_active })
-        .eq('id', rule.id);
-
-      if (error) throw error;
+      await SupabaseService.updateCategorizationRule(rule.id, { is_active: !rule.is_active });
       fetchRules();
     } catch (error) {
-      console.error('Error updating rule status:', error);
+      MonitoringService.captureError(error as Error, { component: 'AutoCategorizationManager', action: 'toggleRule' });
       toast.error('Failed to update rule status');
     }
   };

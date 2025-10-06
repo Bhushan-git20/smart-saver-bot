@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { MonitoringService } from '@/services/monitoring.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -58,17 +60,12 @@ export const RecurringTransactions = () => {
   }, [user]);
 
   const fetchRecurringTransactions = async () => {
+    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('recurring_transactions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setRecurringTransactions((data || []) as RecurringTransaction[]);
+      const data = await SupabaseService.getRecurringTransactions(user.id);
+      setRecurringTransactions(data as RecurringTransaction[]);
     } catch (error) {
-      console.error('Error fetching recurring transactions:', error);
+      MonitoringService.captureError(error as Error, { component: 'RecurringTransactions', action: 'fetchRecurringTransactions' });
       toast({
         title: "Error",
         description: "Failed to fetch recurring transactions",
@@ -116,12 +113,25 @@ export const RecurringTransactions = () => {
     
     if (!user) return;
 
+    // Validate inputs
+    const sanitizedName = ValidationUtils.sanitizeString(formData.name);
+    const sanitizedDesc = ValidationUtils.sanitizeString(formData.description);
+    
+    if (!sanitizedName || sanitizedName.length > 200) {
+      toast({ title: "Error", description: "Invalid name", variant: "destructive" });
+      return;
+    }
+    if (!ValidationUtils.isValidAmount(parseFloat(formData.amount))) {
+      toast({ title: "Error", description: "Invalid amount", variant: "destructive" });
+      return;
+    }
+
     try {
       const nextDueDate = calculateNextDueDate(formData.start_date, formData.frequency);
       
       const transactionData = {
         user_id: user.id,
-        name: formData.name,
+        name: sanitizedName.substring(0, 200),
         category: formData.category,
         type: formData.type,
         amount: parseFloat(formData.amount),
@@ -129,29 +139,18 @@ export const RecurringTransactions = () => {
         start_date: formData.start_date,
         end_date: formData.end_date || null,
         next_due_date: nextDueDate,
-        description: formData.description,
+        description: sanitizedDesc ? sanitizedDesc.substring(0, 500) : null,
         is_active: formData.is_active
       };
 
       if (editingTransaction) {
-        const { error } = await supabase
-          .from('recurring_transactions')
-          .update(transactionData)
-          .eq('id', editingTransaction.id);
-        
-        if (error) throw error;
-        
+        await SupabaseService.updateRecurringTransaction(editingTransaction.id, transactionData);
         toast({
           title: "Success",
           description: "Recurring transaction updated successfully",
         });
       } else {
-        const { error } = await supabase
-          .from('recurring_transactions')
-          .insert([transactionData]);
-        
-        if (error) throw error;
-        
+        await SupabaseService.createRecurringTransaction(transactionData);
         toast({
           title: "Success",
           description: "Recurring transaction created successfully",
@@ -163,7 +162,7 @@ export const RecurringTransactions = () => {
       resetForm();
       fetchRecurringTransactions();
     } catch (error) {
-      console.error('Error saving recurring transaction:', error);
+      MonitoringService.captureError(error as Error, { component: 'RecurringTransactions', action: 'saveTransaction' });
       toast({
         title: "Error",
         description: "Failed to save recurring transaction",
@@ -174,21 +173,14 @@ export const RecurringTransactions = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('recurring_transactions')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await SupabaseService.deleteRecurringTransaction(id);
       toast({
         title: "Success",
         description: "Recurring transaction deleted successfully",
       });
-      
       fetchRecurringTransactions();
     } catch (error) {
-      console.error('Error deleting recurring transaction:', error);
+      MonitoringService.captureError(error as Error, { component: 'RecurringTransactions', action: 'deleteTransaction' });
       toast({
         title: "Error",
         description: "Failed to delete recurring transaction",
