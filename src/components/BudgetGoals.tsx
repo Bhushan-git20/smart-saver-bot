@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { MonitoringService } from '@/services/monitoring.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -54,18 +56,12 @@ export const BudgetGoals = () => {
   }, [user]);
 
   const fetchBudgetGoals = async () => {
+    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('budget_goals')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBudgetGoals(data || []);
+      const data = await SupabaseService.getBudgetGoals(user.id);
+      setBudgetGoals(data);
     } catch (error) {
-      console.error('Error fetching budget goals:', error);
+      MonitoringService.captureError(error as Error, { component: 'BudgetGoals', action: 'fetchBudgetGoals' });
       toast({
         title: "Error",
         description: "Failed to fetch budget goals",
@@ -75,22 +71,21 @@ export const BudgetGoals = () => {
   };
 
   const fetchTransactions = async () => {
+    if (!user) return;
     try {
       const currentDate = new Date();
       const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('amount, type, category, date')
-        .eq('user_id', user?.id)
-        .gte('date', firstDay.toISOString().split('T')[0])
-        .lte('date', lastDay.toISOString().split('T')[0]);
-
-      if (error) throw error;
-      setTransactions((data || []) as Transaction[]);
+      const data = await SupabaseService.getTransactionsByDateRange(
+        user.id,
+        firstDay.toISOString().split('T')[0],
+        lastDay.toISOString().split('T')[0]
+      );
+      
+      setTransactions(data as Transaction[]);
     } catch (error) {
-      console.error('Error fetching transactions:', error);
+      MonitoringService.captureError(error as Error, { component: 'BudgetGoals', action: 'fetchTransactions' });
     } finally {
       setLoading(false);
     }
@@ -100,6 +95,16 @@ export const BudgetGoals = () => {
     e.preventDefault();
     
     if (!user) return;
+
+    // Validate amounts
+    if (formData.monthly_limit && !ValidationUtils.isValidAmount(parseFloat(formData.monthly_limit))) {
+      toast({ title: "Error", description: "Invalid monthly limit", variant: "destructive" });
+      return;
+    }
+    if (formData.monthly_savings_target && !ValidationUtils.isValidAmount(parseFloat(formData.monthly_savings_target))) {
+      toast({ title: "Error", description: "Invalid savings target", variant: "destructive" });
+      return;
+    }
 
     try {
       const currentDate = new Date();
@@ -116,11 +121,7 @@ export const BudgetGoals = () => {
         is_active: true
       };
 
-      const { error } = await supabase
-        .from('budget_goals')
-        .insert([budgetData]);
-      
-      if (error) throw error;
+      await SupabaseService.createBudgetGoal(budgetData);
       
       toast({
         title: "Success",
@@ -131,7 +132,7 @@ export const BudgetGoals = () => {
       resetForm();
       fetchBudgetGoals();
     } catch (error) {
-      console.error('Error saving budget goal:', error);
+      MonitoringService.captureError(error as Error, { component: 'BudgetGoals', action: 'saveBudgetGoal' });
       toast({
         title: "Error",
         description: "Failed to save budget goal",

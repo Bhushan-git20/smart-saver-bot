@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Plus, BarChart3, Upload, Settings as SettingsIcon } from 'lucide-react';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { MonitoringService } from '@/services/monitoring.service';
 import { EnhancedExpenseCharts } from '@/components/EnhancedExpenseCharts';
 import { TransactionList } from '@/components/TransactionList';
 import { FileUploader } from '@/components/FileUploader';
@@ -48,26 +50,22 @@ export const ExpenseTracker = () => {
     if (!user) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false });
-
-    if (error) {
-      toast.error('Failed to fetch transactions');
-      console.error('Error fetching transactions:', error);
-    } else {
-      setTransactions((data || []).map(item => ({
+    try {
+      const data = await SupabaseService.getTransactions(user.id);
+      setTransactions(data.map(item => ({
         id: item.id,
         date: item.date,
         category: item.category,
         type: item.type as 'income' | 'expense',
         amount: item.amount,
-        description: item.description
+        description: item.description || ''
       })));
+    } catch (error) {
+      toast.error('Failed to fetch transactions');
+      MonitoringService.captureError(error as Error, { component: 'ExpenseTracker', action: 'fetchTransactions' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -78,24 +76,32 @@ export const ExpenseTracker = () => {
     e.preventDefault();
     if (!user) return;
 
-    setLoading(true);
-    const { error } = await supabase
-      .from('transactions')
-      .insert([
-        {
-          user_id: user.id,
-          date: formData.date,
-          category: formData.category,
-          type: formData.type,
-          amount: parseFloat(formData.amount),
-          description: formData.description || null,
-        },
-      ]);
+    // Validate inputs
+    const sanitizedDesc = ValidationUtils.sanitizeString(formData.description);
+    if (formData.description && sanitizedDesc.length > 500) {
+      toast.error('Description too long');
+      return;
+    }
+    if (!ValidationUtils.isValidAmount(parseFloat(formData.amount))) {
+      toast.error('Invalid amount');
+      return;
+    }
+    if (!ValidationUtils.isValidDate(formData.date)) {
+      toast.error('Invalid date');
+      return;
+    }
 
-    if (error) {
-      toast.error('Failed to add transaction');
-      console.error('Error adding transaction:', error);
-    } else {
+    setLoading(true);
+    try {
+      await SupabaseService.createTransaction({
+        user_id: user.id,
+        date: formData.date,
+        category: formData.category,
+        type: formData.type,
+        amount: parseFloat(formData.amount),
+        description: formData.description || null,
+      });
+
       toast.success('Transaction added successfully');
       setFormData({
         date: new Date().toISOString().split('T')[0],
@@ -106,8 +112,12 @@ export const ExpenseTracker = () => {
       });
       setShowAddForm(false);
       fetchTransactions();
+    } catch (error) {
+      toast.error('Failed to add transaction');
+      MonitoringService.captureError(error as Error, { component: 'ExpenseTracker', action: 'createTransaction' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const totalIncome = transactions

@@ -6,9 +6,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { SecurityUtils } from '@/utils/security';
+import { MonitoringService } from '@/services/monitoring.service';
 
 interface FileUploaderProps {
   onUploadComplete: () => void;
@@ -32,20 +35,19 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
   const [selectedFileName, setSelectedFileName] = useState<string>('');
 
   const categorizeTransaction = async (description: string): Promise<string> => {
-    // Get categorization rules
-    const { data: rules } = await supabase
-      .from('categorization_rules')
-      .select('*')
-      .eq('user_id', user?.id)
-      .eq('is_active', true)
-      .order('priority', { ascending: false });
+    if (!user) return 'Other';
+    
+    try {
+      // Get categorization rules
+      const rules = await SupabaseService.getCategorizationRules(user.id);
 
-    if (rules) {
       for (const rule of rules) {
         if (description.toLowerCase().includes(rule.keyword.toLowerCase())) {
           return rule.category;
         }
       }
+    } catch (error) {
+      MonitoringService.captureError(error as Error, { component: 'FileUploader', action: 'categorizeTransaction' });
     }
 
     // Default categorization logic
@@ -273,6 +275,15 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       return;
     }
 
+    // Validate file
+    if (!SecurityUtils.validateFileUpload(file, { 
+      maxSizeMB: 10, 
+      allowedTypes: ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']
+    })) {
+      toast.error('Invalid file. Only CSV and Excel files are allowed (max 10MB)');
+      return;
+    }
+
     setSelectedFileName(file.name);
     setIsUploading(true);
     setUploadProgress(0);
@@ -307,7 +318,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       toast.success(`Successfully parsed ${transactions.length} transactions from ${file.name}`);
       
     } catch (error) {
-      console.error('Error parsing file:', error);
+      MonitoringService.captureError(error as Error, { component: 'FileUploader', action: 'handleFileUpload', metadata: { fileName: file.name } });
       toast.error(error instanceof Error ? error.message : 'Failed to parse file. Please check the format.');
       setSelectedFileName('');
     } finally {
@@ -338,21 +349,20 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
 
     setIsUploading(true);
     try {
-      const transactionsToInsert = parsedTransactions.map(t => ({
-        user_id: user.id,
-        date: formatDateForDB(t.date),
-        description: t.description,
-        amount: t.amount,
-        type: t.type,
-        category: t.category,
-        balance: t.balance
-      }));
+      const transactionsToInsert = parsedTransactions.map(t => {
+        const sanitizedDesc = ValidationUtils.sanitizeString(t.description);
+        return {
+          user_id: user.id,
+          date: formatDateForDB(t.date),
+          description: sanitizedDesc.substring(0, 500) || 'Imported transaction',
+          amount: t.amount,
+          type: t.type,
+          category: t.category,
+          balance: t.balance
+        };
+      });
 
-      const { error } = await supabase
-        .from('transactions')
-        .insert(transactionsToInsert);
-
-      if (error) throw error;
+      await SupabaseService.bulkInsertTransactions(transactionsToInsert);
 
       toast.success(`Successfully imported ${parsedTransactions.length} transactions`);
       setShowPreview(false);
@@ -360,7 +370,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
       setSelectedFileName('');
       onUploadComplete();
     } catch (error) {
-      console.error('Error saving transactions:', error);
+      MonitoringService.captureError(error as Error, { component: 'FileUploader', action: 'confirmUpload', metadata: { count: parsedTransactions.length } });
       toast.error('Failed to save transactions');
     } finally {
       setIsUploading(false);

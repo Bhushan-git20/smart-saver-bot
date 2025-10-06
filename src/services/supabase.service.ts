@@ -14,14 +14,42 @@ type PortfolioHolding = Database['public']['Tables']['portfolio_holdings']['Row'
 
 export class SupabaseService {
   // Transactions
-  static async getTransactions(userId: string) {
-    const { data, error } = await supabase
+  static async getTransactions(userId: string, limit?: number) {
+    let query = supabase
       .from('transactions')
       .select('*')
       .eq('user_id', userId)
       .order('date', { ascending: false });
     
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    
     if (error) throw new Error(`Failed to fetch transactions: ${error.message}`);
+    return data;
+  }
+
+  static async getTransactionsByDateRange(userId: string, startDate: string, endDate: string) {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('amount, type, category, date')
+      .eq('user_id', userId)
+      .gte('date', startDate)
+      .lte('date', endDate);
+    
+    if (error) throw new Error(`Failed to fetch transactions: ${error.message}`);
+    return data;
+  }
+
+  static async bulkInsertTransactions(transactions: TransactionInsert[]) {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert(transactions)
+      .select();
+    
+    if (error) throw new Error(`Failed to insert transactions: ${error.message}`);
     return data;
   }
 
@@ -66,6 +94,17 @@ export class SupabaseService {
       .eq('is_active', true);
     
     if (error) throw new Error(`Failed to fetch budget goals: ${error.message}`);
+    return data;
+  }
+
+  static async createBudgetGoal(budgetGoal: Database['public']['Tables']['budget_goals']['Insert']) {
+    const { data, error } = await supabase
+      .from('budget_goals')
+      .insert(budgetGoal)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create budget goal: ${error.message}`);
     return data;
   }
 

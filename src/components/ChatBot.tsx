@@ -6,7 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Send, Bot, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { AIService } from '@/services/ai.service';
+import { SupabaseService } from '@/services/supabase.service';
+import { ValidationUtils } from '@/utils/validation';
+import { MonitoringService } from '@/services/monitoring.service';
+import { useRateLimit } from '@/hooks/useRateLimit';
 
 interface Message {
   id: string;
@@ -28,14 +32,28 @@ export const ChatBot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkRateLimit } = useRateLimit({ endpoint: 'ai-chat', maxRequests: 10, windowMinutes: 1 });
 
   const sendMessage = async () => {
     if (!inputValue.trim() || !user) return;
 
+    // Validate input
+    const sanitizedMessage = ValidationUtils.sanitizeString(inputValue);
+    if (!sanitizedMessage || sanitizedMessage.length > 1000) {
+      toast({ title: 'Error', description: 'Invalid message', variant: 'destructive' });
+      return;
+    }
+
+    // Check rate limit
+    if (!(await checkRateLimit())) {
+      toast({ title: 'Rate Limit', description: 'Too many requests. Please wait a moment.', variant: 'destructive' });
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
+      content: sanitizedMessage,
       timestamp: new Date()
     };
 
@@ -44,20 +62,16 @@ export const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      // Get transaction data for context (you can pass this from parent component)
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(10);
+      // Get transaction data for context
+      const transactions = await SupabaseService.getTransactions(user.id, 10);
 
-      // Calculate financial summary for context
-      const totalIncome = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0;
-      const totalExpenses = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0;
-      const categoryCount = transactions?.reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + t.amount;
+      // Calculate financial summary
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0);
+      const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0);
+      const categoryCount = transactions.reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + (t.amount || 0);
         return acc;
-      }, {} as Record<string, number>) || {};
+      }, {} as Record<string, number>);
       
       const topCategories = Object.entries(categoryCount)
         .sort(([,a], [,b]) => b - a)
@@ -68,41 +82,32 @@ export const ChatBot = () => {
         totalIncome,
         totalExpenses,
         topCategories,
-        recentTransactions: transactions || []
+        recentTransactions: transactions
       };
 
-      // Call the AI chat function
-      const { data, error } = await supabase.functions.invoke('ai-financial-chat', {
-        body: {
-          message: userMessage.content,
-          transactionData,
-          userProfile: {
-            riskProfile: 'medium' // This could come from user profile
-          }
-        }
+      // Call AI service with retry logic
+      const response = await AIService.sendChatMessage({
+        message: sanitizedMessage,
+        financialData: transactionData,
+        userProfile: { riskProfile: 'medium' }
       });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to get AI response');
-      }
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: data.response || 'I apologize, but I couldn\'t process your request at the moment. Please try again.',
+        content: response.response || 'I apologize, but I couldn\'t process your request at the moment. Please try again.',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botResponse]);
     } catch (error) {
-      console.error('Chat error:', error);
+      MonitoringService.captureError(error as Error, { userId: user.id, component: 'ChatBot', action: 'sendMessage' });
       toast({
         title: 'Error',
         description: 'Failed to get response from AI assistant. Please try again.',
         variant: 'destructive',
       });
       
-      // Add error message to chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
