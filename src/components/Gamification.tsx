@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Target, TrendingUp, Award, Flame, Star, Crown, Medal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SupabaseService } from '@/services/supabase.service';
+import { MonitoringService } from '@/services/monitoring.service';
 
 interface Achievement {
   id: string;
@@ -109,24 +110,12 @@ export const Gamification = () => {
     if (!user) return;
 
     try {
-      // Get user's transaction data to calculate achievements
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
+      const [transactions, budgetGoals, portfolioHoldings] = await Promise.all([
+        SupabaseService.getTransactions(user.id),
+        SupabaseService.getBudgetGoals(user.id),
+        SupabaseService.getPortfolioHoldings(user.id)
+      ]);
 
-      const { data: budgetGoals } = await supabase
-        .from('budget_goals')
-        .select('*')
-        .eq('user_id', user.id);
-
-      const { data: portfolioHoldings } = await supabase
-        .from('portfolio_holdings')
-        .select('*')
-        .eq('user_id', user.id);
-
-      // Calculate achievement progress
       const updatedAchievements = defaultAchievements.map(achievement => {
         let progress = 0;
         let unlocked = false;
@@ -138,7 +127,6 @@ export const Gamification = () => {
             break;
             
           case 'budget_master':
-            // Check if user stayed under budget for 3 months (simplified)
             progress = budgetGoals && budgetGoals.length > 0 ? Math.min(budgetGoals.length, 3) : 0;
             unlocked = progress >= achievement.maxProgress;
             break;
@@ -149,13 +137,11 @@ export const Gamification = () => {
             break;
             
           case 'save_hero':
-            // Calculate based on streak data (will be updated when streak calculation is ready)
             progress = Math.min(streakData.savingsStreak, achievement.maxProgress);
             unlocked = progress >= achievement.maxProgress;
             break;
             
           case 'expense_tracker':
-            // Count days with transactions in the last 30 days
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const recentTransactions = transactions?.filter(t => 
@@ -177,7 +163,11 @@ export const Gamification = () => {
 
       setAchievements(updatedAchievements);
     } catch (error) {
-      console.error('Error fetching achievements:', error);
+      MonitoringService.captureError(error as Error, {
+        component: 'Gamification',
+        action: 'fetchAchievements',
+        userId: user.id
+      });
     } finally {
       setLoading(false);
     }
@@ -187,25 +177,17 @@ export const Gamification = () => {
     if (!user) return;
 
     try {
-      // Get recent transactions to calculate streaks
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .limit(100);
+      const transactions = await SupabaseService.getTransactions(user.id, 100);
 
       if (!transactions) return;
 
-      // Calculate savings streak (days with positive net balance)
       const dailyNetBalance = new Map();
       transactions.forEach(t => {
         const date = t.date;
         const current = dailyNetBalance.get(date) || 0;
-        dailyNetBalance.set(date, current + (t.type === 'income' ? t.amount : -t.amount));
+        dailyNetBalance.set(date, current + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)));
       });
 
-      // Calculate consecutive days with positive balance
       let savingsStreak = 0;
       const today = new Date();
       for (let i = 0; i < 30; i++) {
@@ -220,7 +202,6 @@ export const Gamification = () => {
         }
       }
 
-      // Calculate expense tracking streak (days with any transactions)
       const transactionDates = new Set(transactions.map(t => t.date));
       let expenseTrackingStreak = 0;
       for (let i = 0; i < 30; i++) {
@@ -237,12 +218,16 @@ export const Gamification = () => {
 
       setStreakData({
         savingsStreak,
-        budgetStreak: 0, // This would require budget goal analysis
+        budgetStreak: 0,
         expenseTrackingStreak
       });
 
     } catch (error) {
-      console.error('Error calculating streaks:', error);
+      MonitoringService.captureError(error as Error, {
+        component: 'Gamification',
+        action: 'calculateStreaks',
+        userId: user.id
+      });
     }
   };
 

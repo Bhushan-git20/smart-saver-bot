@@ -8,6 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Send, Bot, User, Settings, Brain, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SupabaseService } from '@/services/supabase.service';
+import { MonitoringService } from '@/services/monitoring.service';
+import { ValidationUtils } from '@/utils/validation';
+import { useRateLimit } from '@/hooks/useRateLimit';
 
 interface Message {
   id: string;
@@ -69,20 +73,19 @@ export const ChatBotAdvanced = () => {
       if (error) throw error;
       setConversationHistory(data || []);
     } catch (error) {
-      console.error('Error fetching conversation history:', error);
+      MonitoringService.captureError(error as Error, {
+        component: 'ChatBotAdvanced',
+        action: 'fetchConversationHistory',
+        userId: user?.id
+      });
     }
   };
 
   const fetchTransactionData = async () => {
-    try {
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('date', { ascending: false })
-        .limit(50);
+    if (!user?.id) return;
 
-      if (error) throw error;
+    try {
+      const transactions = await SupabaseService.getTransactions(user.id, 50);
 
       if (transactions && transactions.length > 0) {
         const totalIncome = transactions
@@ -114,17 +117,50 @@ export const ChatBotAdvanced = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching transaction data:', error);
+      MonitoringService.captureError(error as Error, {
+        component: 'ChatBotAdvanced',
+        action: 'fetchTransactionData',
+        userId: user.id
+      });
     }
   };
+
+  const { checkRateLimit } = useRateLimit({
+    endpoint: 'ai-chat-advanced',
+    maxRequests: 20,
+    windowMinutes: 1
+  });
 
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading || !user) return;
 
+    // Validate input
+    const sanitizedMessage = ValidationUtils.sanitizeString(inputValue.trim());
+    if (sanitizedMessage.length < 1 || sanitizedMessage.length > 1000) {
+      toast({
+        title: "Invalid Input",
+        description: "Message must be between 1 and 1000 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check rate limit
+    const canProceed = await checkRateLimit();
+
+    if (!canProceed) {
+      toast({
+        title: "Rate Limit Exceeded",
+        description: "Please wait a moment before sending another message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue.trim(),
+      content: sanitizedMessage,
       timestamp: new Date()
     };
 
@@ -133,12 +169,7 @@ export const ChatBotAdvanced = () => {
     setIsLoading(true);
 
     try {
-      // Get user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('risk_profile')
-        .eq('id', user.id)
-        .single();
+      const profile = await SupabaseService.getUserProfile(user.id);
 
       const { data, error } = await supabase.functions.invoke('ai-financial-chat-advanced', {
         body: {
@@ -162,11 +193,14 @@ export const ChatBotAdvanced = () => {
 
       setMessages(prev => [...prev, botMessage]);
       
-      // Refresh conversation history
       await fetchConversationHistory();
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      MonitoringService.captureError(error as Error, {
+        component: 'ChatBotAdvanced',
+        action: 'sendMessage',
+        userId: user.id
+      });
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),

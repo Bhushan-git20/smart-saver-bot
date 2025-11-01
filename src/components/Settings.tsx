@@ -9,12 +9,19 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { MonitoringService } from '@/services/monitoring.service';
+import { useRateLimit } from '@/hooks/useRateLimit';
 
 export const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { i18n, t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkRateLimit } = useRateLimit({
+    endpoint: 'monthly-report',
+    maxRequests: 3,
+    windowMinutes: 60
+  });
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const changeLanguage = (lng: string) => {
@@ -24,9 +31,20 @@ export const Settings = () => {
   const generateMonthlyReport = async () => {
     if (!user) return;
 
+    const canProceed = await checkRateLimit();
+
+    if (!canProceed) {
+      toast({
+        title: "Rate Limit Exceeded",
+        description: "You can only generate 3 reports per hour.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGeneratingReport(true);
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      const currentMonth = new Date().toISOString().slice(0, 7);
       
       const { data, error } = await supabase.functions.invoke('monthly-report', {
         body: {
@@ -44,6 +62,12 @@ export const Settings = () => {
       });
       
     } catch (error: any) {
+      MonitoringService.captureError(error as Error, {
+        component: 'Settings',
+        action: 'generateMonthlyReport',
+        userId: user.id
+      });
+      
       toast({
         title: t('common.error'),
         description: error.message || 'Failed to generate monthly report',

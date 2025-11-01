@@ -9,6 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Download, Upload, FileJson, Database } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SupabaseService } from '@/services/supabase.service';
+import { MonitoringService } from '@/services/monitoring.service';
+import { ValidationUtils } from '@/utils/validation';
 
 export const DataBackup = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -23,12 +26,14 @@ export const DataBackup = () => {
 
     setIsExporting(true);
     try {
-      // Fetch all user data
-      const [transactionsRes, budgetGoalsRes, portfolioRes, recurringRes, achievementsRes, streaksRes] = await Promise.all([
-        supabase.from('transactions').select('*').eq('user_id', user.id),
-        supabase.from('budget_goals').select('*').eq('user_id', user.id),
-        supabase.from('portfolio_holdings').select('*').eq('user_id', user.id),
-        supabase.from('recurring_transactions').select('*').eq('user_id', user.id),
+      const [transactions, budgetGoals, portfolioHoldings, recurringTransactions] = await Promise.all([
+        SupabaseService.getTransactions(user.id),
+        SupabaseService.getBudgetGoals(user.id),
+        SupabaseService.getPortfolioHoldings(user.id),
+        SupabaseService.getRecurringTransactions(user.id)
+      ]);
+
+      const [achievementsRes, streaksRes] = await Promise.all([
         supabase.from('user_achievements').select('*').eq('user_id', user.id),
         supabase.from('user_streaks').select('*').eq('user_id', user.id)
       ]);
@@ -38,16 +43,15 @@ export const DataBackup = () => {
         exportDate: new Date().toISOString(),
         userId: user.id,
         data: {
-          transactions: transactionsRes.data || [],
-          budgetGoals: budgetGoalsRes.data || [],
-          portfolioHoldings: portfolioRes.data || [],
-          recurringTransactions: recurringRes.data || [],
+          transactions: transactions || [],
+          budgetGoals: budgetGoals || [],
+          portfolioHoldings: portfolioHoldings || [],
+          recurringTransactions: recurringTransactions || [],
           achievements: achievementsRes.data || [],
           streaks: streaksRes.data || []
         }
       };
 
-      // Create and download JSON file
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -63,6 +67,12 @@ export const DataBackup = () => {
         description: 'Data exported successfully!',
       });
     } catch (error: any) {
+      MonitoringService.captureError(error as Error, {
+        component: 'DataBackup',
+        action: 'exportUserData',
+        userId: user.id
+      });
+      
       toast({
         title: t('common.error'),
         description: error.message || 'Failed to export data',
@@ -84,7 +94,6 @@ export const DataBackup = () => {
         throw new Error('Invalid backup format');
       }
 
-      // Clear existing data (with user confirmation)
       const confirmClear = window.confirm(
         'This will replace all your existing data. Are you sure you want to continue?'
       );
@@ -93,44 +102,47 @@ export const DataBackup = () => {
         return;
       }
 
-      // Import transactions
       if (parsedData.data.transactions?.length > 0) {
         const transactions = parsedData.data.transactions.map((t: any) => ({
           ...t,
           user_id: user.id,
-          id: undefined // Let Supabase generate new IDs
+          id: undefined,
+          amount: ValidationUtils.isValidAmount(t.amount) ? t.amount : 0,
+          description: ValidationUtils.sanitizeString(t.description || '')
         }));
-        await supabase.from('transactions').insert(transactions);
+        await SupabaseService.bulkInsertTransactions(transactions);
       }
 
-      // Import budget goals
       if (parsedData.data.budgetGoals?.length > 0) {
-        const budgetGoals = parsedData.data.budgetGoals.map((bg: any) => ({
-          ...bg,
-          user_id: user.id,
-          id: undefined
-        }));
-        await supabase.from('budget_goals').insert(budgetGoals);
+        for (const bg of parsedData.data.budgetGoals) {
+          await SupabaseService.createBudgetGoal({
+            ...bg,
+            user_id: user.id,
+            id: undefined,
+            monthly_limit: ValidationUtils.isValidAmount(bg.monthly_limit) ? bg.monthly_limit : null,
+            monthly_savings_target: ValidationUtils.isValidAmount(bg.monthly_savings_target) ? bg.monthly_savings_target : null
+          });
+        }
       }
 
-      // Import portfolio holdings
       if (parsedData.data.portfolioHoldings?.length > 0) {
-        const portfolioHoldings = parsedData.data.portfolioHoldings.map((ph: any) => ({
-          ...ph,
-          user_id: user.id,
-          id: undefined
-        }));
-        await supabase.from('portfolio_holdings').insert(portfolioHoldings);
+        for (const ph of parsedData.data.portfolioHoldings) {
+          await SupabaseService.createPortfolioHolding({
+            ...ph,
+            user_id: user.id,
+            id: undefined
+          });
+        }
       }
 
-      // Import recurring transactions
       if (parsedData.data.recurringTransactions?.length > 0) {
-        const recurringTransactions = parsedData.data.recurringTransactions.map((rt: any) => ({
-          ...rt,
-          user_id: user.id,
-          id: undefined
-        }));
-        await supabase.from('recurring_transactions').insert(recurringTransactions);
+        for (const rt of parsedData.data.recurringTransactions) {
+          await SupabaseService.createRecurringTransaction({
+            ...rt,
+            user_id: user.id,
+            id: undefined
+          });
+        }
       }
 
       toast({
@@ -139,6 +151,12 @@ export const DataBackup = () => {
       });
       setImportData('');
     } catch (error: any) {
+      MonitoringService.captureError(error as Error, {
+        component: 'DataBackup',
+        action: 'importUserData',
+        userId: user.id
+      });
+      
       toast({
         title: t('common.error'),
         description: error.message || 'Failed to import data. Please check the format.',
