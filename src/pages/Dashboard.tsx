@@ -1,20 +1,32 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpenseTracker } from '@/components/ExpenseTracker';
-import { ChatBotAdvanced } from '@/components/ChatBotAdvanced';
-import { InvestmentModule } from '@/components/InvestmentModule';
-import { PaymentIntegration } from '@/components/PaymentIntegration';
+import { TransactionListPaginated } from '@/components/TransactionListPaginated';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { RecurringTransactions } from '@/components/RecurringTransactions';
 import { BudgetGoals } from '@/components/BudgetGoals';
-import { PortfolioTracker } from '@/components/PortfolioTracker';
-import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target, Trophy, Settings as SettingsIcon } from 'lucide-react';
-import { Gamification } from '@/components/Gamification';
-import { DataBackup } from '@/components/DataBackup';
-import { Settings } from '@/components/Settings';
+import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target, Trophy, Settings as SettingsIcon, List } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load heavy components
+const ChatBotAdvanced = lazy(() => import('@/components/ChatBotAdvanced').then(m => ({ default: m.ChatBotAdvanced })));
+const InvestmentModule = lazy(() => import('@/components/InvestmentModule').then(m => ({ default: m.InvestmentModule })));
+const PaymentIntegration = lazy(() => import('@/components/PaymentIntegration').then(m => ({ default: m.PaymentIntegration })));
+const RecurringTransactions = lazy(() => import('@/components/RecurringTransactions').then(m => ({ default: m.RecurringTransactions })));
+const PortfolioTracker = lazy(() => import('@/components/PortfolioTracker').then(m => ({ default: m.PortfolioTracker })));
+const Gamification = lazy(() => import('@/components/Gamification').then(m => ({ default: m.Gamification })));
+const DataBackup = lazy(() => import('@/components/DataBackup').then(m => ({ default: m.DataBackup })));
+const Settings = lazy(() => import('@/components/Settings').then(m => ({ default: m.Settings })));
+
+const LoadingFallback = () => (
+  <div className="space-y-4 p-4">
+    <Skeleton className="h-8 w-48" />
+    <Skeleton className="h-64 w-full" />
+    <Skeleton className="h-32 w-full" />
+  </div>
+);
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -47,10 +59,14 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="expenses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 gap-1">
             <TabsTrigger value="expenses" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Expenses
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="flex items-center gap-2">
+              <List className="w-4 h-4" />
+              Transactions
             </TabsTrigger>
             <TabsTrigger value="recurring" className="flex items-center gap-2">
               <Repeat className="w-4 h-4" />
@@ -86,8 +102,24 @@ const Dashboard = () => {
             <ExpenseTracker />
           </TabsContent>
 
+          <TabsContent value="transactions" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>
+                  View and manage all your transactions with pagination
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TransactionListPaginated />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="recurring" className="space-y-6">
-            <RecurringTransactions />
+            <Suspense fallback={<LoadingFallback />}>
+              <RecurringTransactions />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="budget" className="space-y-6">
@@ -95,7 +127,9 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="achievements" className="space-y-6">
-            <Gamification />
+            <Suspense fallback={<LoadingFallback />}>
+              <Gamification />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-6">
@@ -107,23 +141,31 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ChatBotAdvanced />
+                <Suspense fallback={<LoadingFallback />}>
+                  <ChatBotAdvanced />
+                </Suspense>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="investments" className="space-y-6">
-            <PortfolioTracker />
-            <InvestmentModule />
+            <Suspense fallback={<LoadingFallback />}>
+              <PortfolioTracker />
+              <InvestmentModule />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-6">
-            <PaymentIntegration />
+            <Suspense fallback={<LoadingFallback />}>
+              <PaymentIntegration />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <Settings />
-            <DataBackup />
+            <Suspense fallback={<LoadingFallback />}>
+              <Settings />
+              <DataBackup />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </main>
