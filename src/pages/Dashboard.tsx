@@ -11,14 +11,14 @@ import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Targ
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Lazy load heavy components
-const ChatBotAdvanced = lazy(() => import('@/components/ChatBotAdvanced').then(m => ({ default: m.ChatBotAdvanced })));
-const InvestmentModule = lazy(() => import('@/components/InvestmentModule').then(m => ({ default: m.InvestmentModule })));
-const PaymentIntegration = lazy(() => import('@/components/PaymentIntegration').then(m => ({ default: m.PaymentIntegration })));
-const RecurringTransactions = lazy(() => import('@/components/RecurringTransactions').then(m => ({ default: m.RecurringTransactions })));
-const PortfolioTracker = lazy(() => import('@/components/PortfolioTracker').then(m => ({ default: m.PortfolioTracker })));
-const Gamification = lazy(() => import('@/components/Gamification').then(m => ({ default: m.Gamification })));
-const DataBackup = lazy(() => import('@/components/DataBackup').then(m => ({ default: m.DataBackup })));
-const Settings = lazy(() => import('@/components/Settings').then(m => ({ default: m.Settings })));
+const ChatBotAdvanced = lazy(() => import('@/components/ChatBotAdvanced').then(module => ({ default: module.ChatBotAdvanced })));
+const InvestmentModule = lazy(() => import('@/components/InvestmentModule').then(module => ({ default: module.InvestmentModule })));
+const PaymentIntegration = lazy(() => import('@/components/PaymentIntegration').then(module => ({ default: module.PaymentIntegration })));
+const RecurringTransactions = lazy(() => import('@/components/RecurringTransactions').then(module => ({ default: module.RecurringTransactions })));
+const PortfolioTracker = lazy(() => import('@/components/PortfolioTracker').then(module => ({ default: module.PortfolioTracker })));
+const Gamification = lazy(() => import('@/components/Gamification').then(module => ({ default: module.Gamification })));
+const DataBackup = lazy(() => import('@/components/DataBackup').then(module => ({ default: module.DataBackup })));
+const Settings = lazy(() => import('@/components/Settings').then(module => ({ default: module.Settings })));
 
 const LoadingFallback = () => (
   <div className="space-y-4 p-4">
