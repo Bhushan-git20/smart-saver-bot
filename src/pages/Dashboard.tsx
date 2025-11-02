@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, memo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { BudgetGoals } from '@/components/BudgetGoals';
 import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target, Trophy, Settings as SettingsIcon, List } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePrefetchTabs } from '@/hooks/usePrefetchTabs';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 
 // Lazy load heavy components
 const ChatBotAdvanced = lazy(() => import('@/components/ChatBotAdvanced').then(module => ({ default: module.ChatBotAdvanced })));
@@ -28,12 +30,18 @@ const LoadingFallback = () => (
   </div>
 );
 
-const Dashboard = () => {
+const Dashboard = memo(() => {
   const { user, signOut } = useAuth();
 
-  const handleSignOut = async () => {
+  // Prefetch data for other tabs to improve perceived performance
+  usePrefetchTabs();
+
+  // Monitor dashboard render performance
+  usePerformanceMonitor({ componentName: 'Dashboard', threshold: 200 });
+
+  const handleSignOut = useCallback(async () => {
     await signOut();
-  };
+  }, [signOut]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,6 +179,8 @@ const Dashboard = () => {
       </main>
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;
