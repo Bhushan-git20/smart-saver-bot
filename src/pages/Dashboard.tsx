@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, memo, useCallback } from 'react';
+import { useState, lazy, Suspense, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ const LoadingFallback = () => (
   </div>
 );
 
-const Dashboard = memo(() => {
+const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [bulkMode, setBulkMode] = useState(false);
   const { transactions } = useTransactions();
@@ -218,8 +218,6 @@ const Dashboard = memo(() => {
       </main>
     </div>
   );
-});
-
-Dashboard.displayName = 'Dashboard';
+};
 
 export default Dashboard;
