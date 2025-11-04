@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense, memo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +12,8 @@ import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Targ
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePrefetchTabs } from '@/hooks/usePrefetchTabs';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import { useBulkTransactions } from '@/hooks/useBulkTransactions';
+import { BulkActionsBar } from '@/components/BulkActionsBar';
 
 // Lazy load heavy components
 const ChatBotAdvanced = lazy(() => import('@/components/ChatBotAdvanced').then(module => ({ default: module.ChatBotAdvanced })));
@@ -32,12 +35,23 @@ const LoadingFallback = () => (
 
 const Dashboard = memo(() => {
   const { user, signOut } = useAuth();
+  const [bulkMode, setBulkMode] = useState(false);
+  const { transactions } = useTransactions();
 
   // Prefetch data for other tabs to improve perceived performance
   usePrefetchTabs();
 
   // Monitor dashboard render performance
   usePerformanceMonitor({ componentName: 'Dashboard', threshold: 200 });
+
+  const {
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    bulkDelete,
+    isDeleting,
+  } = useBulkTransactions();
 
   const handleSignOut = useCallback(async () => {
     await signOut();
@@ -113,13 +127,38 @@ const Dashboard = memo(() => {
           <TabsContent value="transactions" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>
-                  View and manage all your transactions with pagination
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Transaction History</CardTitle>
+                    <CardDescription>
+                      View and manage all your transactions with pagination
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBulkMode(!bulkMode);
+                      clearSelection();
+                    }}
+                  >
+                    {bulkMode ? 'Cancel' : 'Bulk Select'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <TransactionListPaginated />
+                <TransactionListPaginated 
+                  bulkMode={bulkMode}
+                  selectedIds={selectedIds}
+                  onToggleSelection={toggleSelection}
+                  onSelectAll={() => selectAll(transactions.map(t => t.id))}
+                />
+                <BulkActionsBar
+                  selectedCount={selectedIds.size}
+                  onClearSelection={clearSelection}
+                  onBulkDelete={bulkDelete}
+                  isDeleting={isDeleting}
+                />
               </CardContent>
             </Card>
           </TabsContent>

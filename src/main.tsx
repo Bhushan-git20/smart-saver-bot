@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MonitoringService } from './services/monitoring.service';
 import { SecurityUtils } from './utils/security';
+import { registerServiceWorker } from './utils/pwaUtils';
 import App from './App.tsx';
 import './index.css';
 import './i18n';
@@ -14,6 +15,9 @@ if (SENTRY_DSN) {
 
 // Set security headers
 SecurityUtils.setSecurityHeaders();
+
+// Register service worker for PWA
+registerServiceWorker();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
