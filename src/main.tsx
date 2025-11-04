@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MonitoringService } from './services/monitoring.service';
 import { SecurityUtils } from './utils/security';
@@ -16,9 +16,9 @@ if (SENTRY_DSN) {
 SecurityUtils.setSecurityHeaders();
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  <React.StrictMode>
     <App />
-  </StrictMode>
+  </React.StrictMode>
 );
 
 // Register service worker for PWA after React has mounted
