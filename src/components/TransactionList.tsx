@@ -4,18 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Filter, Search, FileDown } from 'lucide-react';
+import { Trash2, Filter, Search } from 'lucide-react';
 import { SupabaseService } from '@/services/supabase.service';
 import { MonitoringService } from '@/services/monitoring.service';
 import { useToast } from '@/hooks/use-toast';
-import { ExportUtils } from '@/utils/exportUtils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface Transaction {
   id: string;
@@ -29,32 +21,16 @@ interface Transaction {
 interface TransactionListProps {
   transactions: Transaction[];
   onRefresh: () => void;
-  selectedIds?: Set<string>;
-  onToggleSelection?: (id: string) => void;
-  onSelectAll?: () => void;
-  bulkMode?: boolean;
 }
 
 export const TransactionList = ({ 
   transactions, 
   onRefresh,
-  selectedIds = new Set(),
-  onToggleSelection,
-  onSelectAll,
-  bulkMode = false,
 }: TransactionListProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const { toast } = useToast();
-
-  const handleExport = (format: 'pdf' | 'excel') => {
-    if (format === 'pdf') {
-      ExportUtils.exportToPDF(filteredTransactions);
-    } else {
-      ExportUtils.exportToExcel(filteredTransactions);
-    }
-  };
 
   const categories = Array.from(new Set(transactions.map(t => t.category)));
 
@@ -88,35 +64,8 @@ export const TransactionList = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>View and manage your transaction history</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            {bulkMode && onSelectAll && (
-              <Button variant="outline" size="sm" onClick={onSelectAll}>
-                Select All
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                  Export to PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('excel')}>
-                  Export to Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+        <CardTitle>Recent Transactions</CardTitle>
+        <CardDescription>View and manage your transaction history</CardDescription>
         
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -166,13 +115,6 @@ export const TransactionList = ({
                 key={transaction.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                {bulkMode && onToggleSelection && (
-                  <Checkbox
-                    checked={selectedIds.has(transaction.id)}
-                    onCheckedChange={() => onToggleSelection(transaction.id)}
-                    className="mr-4"
-                  />
-                )}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
                     <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'}>

@@ -2,33 +2,13 @@ import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, ChevronLeft, ChevronRight, FileDown } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExportUtils } from '@/utils/exportUtils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 const ITEMS_PER_PAGE = 10;
 
-interface TransactionListPaginatedProps {
-  bulkMode?: boolean;
-  selectedIds?: Set<string>;
-  onToggleSelection?: (id: string) => void;
-  onSelectAll?: () => void;
-}
-
-export const TransactionListPaginated = ({
-  bulkMode = false,
-  selectedIds = new Set(),
-  onToggleSelection,
-  onSelectAll,
-}: TransactionListPaginatedProps = {}) => {
+export const TransactionListPaginated = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { transactions, isLoading, deleteTransaction, isDeleting } = useTransactions();
 
@@ -40,14 +20,6 @@ export const TransactionListPaginated = ({
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       deleteTransaction(id);
-    }
-  };
-
-  const handleExport = (format: 'pdf' | 'excel') => {
-    if (format === 'pdf') {
-      ExportUtils.exportToPDF(transactions);
-    } else {
-      ExportUtils.exportToExcel(transactions);
     }
   };
 
@@ -79,35 +51,10 @@ export const TransactionListPaginated = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
-        {bulkMode && onSelectAll && (
-          <Button variant="outline" size="sm" onClick={onSelectAll}>
-            Select All ({transactions.length})
-          </Button>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <FileDown className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => handleExport('pdf')}>
-              Export to PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport('excel')}>
-              Export to Excel
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              {bulkMode && <TableHead className="w-[50px]"></TableHead>}
               <TableHead>Date</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
@@ -119,14 +66,6 @@ export const TransactionListPaginated = ({
           <TableBody>
             {currentTransactions.map((transaction) => (
               <TableRow key={transaction.id}>
-                {bulkMode && onToggleSelection && (
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(transaction.id)}
-                      onCheckedChange={() => onToggleSelection(transaction.id)}
-                    />
-                  </TableCell>
-                )}
                 <TableCell className="font-medium">
                   {new Date(transaction.date).toLocaleDateString()}
                 </TableCell>
