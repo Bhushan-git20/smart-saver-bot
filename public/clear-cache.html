@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cache Clearer</title>
+</head>
+<body>
+  <h1>Clearing Cache...</h1>
+  <p id="status">Working...</p>
+  <script>
+    (async () => {
+      const status = document.getElementById('status');
+      
+      // Unregister all service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+        }
+        status.innerHTML += '<br>✓ Service workers unregistered';
+      }
+      
+      // Clear all caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (let name of cacheNames) {
+          await caches.delete(name);
+        }
+        status.innerHTML += '<br>✓ All caches cleared';
+      }
+      
+      // Clear localStorage
+      localStorage.clear();
+      status.innerHTML += '<br>✓ LocalStorage cleared';
+      
+      // Clear sessionStorage
+      sessionStorage.clear();
+      status.innerHTML += '<br>✓ SessionStorage cleared';
+      
+      status.innerHTML += '<br><br><strong>✓ All done! Redirecting...</strong>';
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    })();
+  </script>
+</body>
+</html>
