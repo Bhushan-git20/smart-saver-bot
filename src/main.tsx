@@ -1,3 +1,4 @@
+// Main entry - Updated 2025-11-05
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MonitoringService } from './services/monitoring.service';
