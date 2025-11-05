@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Settings, Plus, Trash2, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { ValidationUtils } from '@/utils/validation';
 import { MonitoringService } from '@/services/monitoring.service';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+
+const { useState, useEffect } = React;
 
 interface CategorizationRule {
   id: string;

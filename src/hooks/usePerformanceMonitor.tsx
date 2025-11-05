@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import React from 'react';
 import { MonitoringService } from '@/services/monitoring.service';
+
+const { useEffect, useRef } = React;
 
 interface PerformanceMetrics {
   componentName: string;

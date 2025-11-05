@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'd
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+
+const { useState, useMemo } = React;
 
 interface Transaction {
   id: string;

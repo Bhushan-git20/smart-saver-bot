@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import React from 'react';
 import { SecurityUtils } from '@/utils/security';
 import { useAuth } from './useAuth';
+
+const { useState } = React;
 
 interface RateLimitConfig {
   endpoint: string;

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
+
+const { useState, useEffect } = React;
 import { useAuth } from '@/hooks/useAuth';
 import { SupabaseService } from '@/services/supabase.service';
 import { ValidationUtils } from '@/utils/validation';

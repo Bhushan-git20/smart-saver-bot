@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { SupabaseService } from '@/services/supabase.service';
+
+const { useEffect } = React;
 
 /**
  * Hook to prefetch data for dashboard tabs before user navigates

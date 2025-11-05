@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import React from 'react';
+
+const { useState } = React;
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

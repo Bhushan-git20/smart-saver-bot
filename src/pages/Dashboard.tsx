@@ -1,4 +1,6 @@
-import { useState, lazy, Suspense, useCallback } from 'react';
+import React from 'react';
+
+const { useState, lazy, Suspense, useCallback } = React;
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { SupabaseService } from '@/services/supabase.service';
 import { ValidationUtils } from '@/utils/validation';
 import { SecurityUtils } from '@/utils/security';
 import { MonitoringService } from '@/services/monitoring.service';
+
+const { useState, useCallback } = React;
 
 interface FileUploaderProps {
   onUploadComplete: () => void;

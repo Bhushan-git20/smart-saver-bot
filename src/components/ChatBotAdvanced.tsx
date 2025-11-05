@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import React from 'react';
+
+const { useState, useEffect, useRef } = React;
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
