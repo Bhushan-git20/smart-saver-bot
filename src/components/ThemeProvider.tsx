@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React from 'react';
+
+const { createContext, useContext, useEffect, useState } = React;
 
 type Theme = "dark" | "light" | "system"
 
