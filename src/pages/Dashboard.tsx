@@ -9,7 +9,7 @@ import { ExpenseTracker } from '@/components/ExpenseTracker';
 import { TransactionListPaginated } from '@/components/TransactionListPaginated';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BudgetGoals } from '@/components/BudgetGoals';
-import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target, Trophy, Settings as SettingsIcon, List } from 'lucide-react';
+import { LogOut, DollarSign, MessageCircle, TrendingUp, Smartphone, Repeat, Target, Trophy, Settings as SettingsIcon, List, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePrefetchTabs } from '@/hooks/usePrefetchTabs';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
@@ -47,21 +47,28 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">AI Financial Advisor</h1>
-            <p className="text-sm text-muted-foreground">
-              Welcome back, {user?.user_metadata?.first_name || 'User'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+      {/* Modern Navigation Header */}
+      <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-lg shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold gradient-text">FinanceAI</h1>
+                <p className="text-xs text-muted-foreground">
+                  Welcome back, {user?.user_metadata?.first_name || 'User'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button onClick={handleSignOut} variant="outline" size="sm" className="gap-2">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -69,88 +76,124 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="expenses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 gap-1">
-            <TabsTrigger value="expenses" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Expenses
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex items-center gap-2">
-              <List className="w-4 h-4" />
-              Transactions
-            </TabsTrigger>
-            <TabsTrigger value="recurring" className="flex items-center gap-2">
-              <Repeat className="w-4 h-4" />
-              Recurring
-            </TabsTrigger>
-            <TabsTrigger value="budget" className="flex items-center gap-2">
-              <Target className="w-4 h-4" />
-              Budget
-            </TabsTrigger>
-            <TabsTrigger value="achievements" className="flex items-center gap-2">
-              <Trophy className="w-4 h-4" />
-              Achievements
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" />
-              AI Assistant
-            </TabsTrigger>
-            <TabsTrigger value="investments" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Investments
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4" />
-              Payments
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <SettingsIcon className="w-4 h-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
+          {/* Modern Tab Navigation */}
+          <div className="bg-card rounded-xl p-2 shadow-sm border">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-2 bg-transparent h-auto p-0">
+              <TabsTrigger 
+                value="expenses" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <DollarSign className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Expenses</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="transactions" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-secondary data-[state=active]:to-secondary/80 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <List className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Transactions</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="recurring" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-accent data-[state=active]:to-accent/80 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <Repeat className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Recurring</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="budget" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-secondary data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <Target className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Budget</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="achievements" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-accent data-[state=active]:to-primary data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <Trophy className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Achievements</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="chat" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-secondary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">AI Assistant</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="investments" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Investments</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="payments" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Payments</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="settings" 
+                className="flex flex-col sm:flex-row items-center gap-2 py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-accent data-[state=active]:to-secondary data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                <SettingsIcon className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Settings</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="expenses" className="space-y-6">
+          <TabsContent value="expenses" className="space-y-6 animate-fade-in">
             <ExpenseTracker />
           </TabsContent>
 
-          <TabsContent value="transactions" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
+          <TabsContent value="transactions" className="space-y-6 animate-fade-in">
+            <Card className="shadow-lg border-2">
+              <CardHeader className="bg-gradient-to-r from-secondary/10 to-transparent">
+                <CardTitle className="flex items-center gap-2">
+                  <List className="w-5 h-5 text-secondary" />
+                  Transaction History
+                </CardTitle>
                 <CardDescription>
-                  View and manage all your transactions with pagination
+                  View and manage all your transactions with advanced filtering and pagination
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <TransactionListPaginated />
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="recurring" className="space-y-6">
+          <TabsContent value="recurring" className="space-y-6 animate-fade-in">
             <Suspense fallback={<LoadingFallback />}>
               <RecurringTransactions />
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="budget" className="space-y-6">
+          <TabsContent value="budget" className="space-y-6 animate-fade-in">
             <BudgetGoals />
           </TabsContent>
 
-          <TabsContent value="achievements" className="space-y-6">
+          <TabsContent value="achievements" className="space-y-6 animate-fade-in">
             <Suspense fallback={<LoadingFallback />}>
               <Gamification />
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="chat" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Financial Assistant</CardTitle>
+          <TabsContent value="chat" className="space-y-6 animate-fade-in">
+            <Card className="shadow-lg border-2">
+              <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  AI Financial Assistant
+                </CardTitle>
                 <CardDescription>
-                  Advanced AI assistant with multiple providers, conversation memory, and personalized advice
+                  Get personalized financial advice with conversation memory and multi-provider AI support
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Suspense fallback={<LoadingFallback />}>
                   <ChatBotAdvanced />
                 </Suspense>
@@ -158,20 +201,20 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="investments" className="space-y-6">
+          <TabsContent value="investments" className="space-y-6 animate-fade-in">
             <Suspense fallback={<LoadingFallback />}>
               <PortfolioTracker />
               <InvestmentModule />
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="payments" className="space-y-6">
+          <TabsContent value="payments" className="space-y-6 animate-fade-in">
             <Suspense fallback={<LoadingFallback />}>
               <PaymentIntegration />
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
+          <TabsContent value="settings" className="space-y-6 animate-fade-in">
             <Suspense fallback={<LoadingFallback />}>
               <Settings />
               <DataBackup />
