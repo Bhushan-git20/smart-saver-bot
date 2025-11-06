@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { TestimonialsCarousel } from '@/components/TestimonialsCarousel';
 import { 
   DollarSign, 
   MessageCircle, 
@@ -16,7 +17,8 @@ import {
   ArrowRight,
   CheckCircle2,
   Zap,
-  Globe
+  Globe,
+  Quote
 } from 'lucide-react';
 
 const Index = () => {
@@ -170,7 +172,7 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section className="py-20 px-4 bg-gradient-to-b from-background via-primary/5 to-background">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">
@@ -254,8 +256,32 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-secondary/5 via-accent/5 to-primary/5 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/2 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="container mx-auto max-w-7xl">
+          <div className="text-center mb-16 animate-fade-in-up">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent mb-6">
+              <Quote className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+              Loved by <span className="gradient-text">Thousands</span> of Users
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              See what our community has to say about their experience
+            </p>
+          </div>
+          
+          <TestimonialsCarousel />
+        </div>
+      </section>
+
       {/* Stats Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto max-w-7xl">
           <div className="grid md:grid-cols-4 gap-8">
             {[
@@ -274,7 +300,10 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
+      <section className="py-20 px-4 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/20 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.1),transparent_50%)]"></div>
+        </div>
         <div className="container mx-auto max-w-4xl text-center animate-fade-in-up">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6">
             Ready to Take Control of Your <span className="gradient-text">Finances?</span>
@@ -295,7 +324,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-12 px-4 bg-card">
+      <footer className="border-t py-12 px-4 bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
