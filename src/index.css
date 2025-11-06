@@ -8,13 +8,13 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 250 40% 97%;  /* Soft lavender base */
+    --background: 250 50% 95%;  /* More vibrant lavender base */
     --foreground: 222.2 84% 4.9%;
 
-    --card: 250 35% 96%;  /* Subtle purple-tinted card background */
+    --card: 250 45% 94%;  /* Noticeable purple-tinted card background */
     --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 250 30% 95%;  /* Light lavender popover */
+    --popover: 250 40% 93%;  /* Visible lavender popover */
     --popover-foreground: 222.2 84% 4.9%;
 
     /* Modern vibrant color palette */
@@ -55,7 +55,7 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --sidebar-background: 250 35% 96%;  /* Soft lavender sidebar */
+    --sidebar-background: 250 45% 94%;  /* Visible lavender sidebar */
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -123,8 +123,20 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Smooth transitions for all themed elements */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
   }
 
   /* Smooth animations */
