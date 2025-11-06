@@ -8,13 +8,13 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 250 40% 98%;
+    --background: 250 40% 97%;  /* Soft lavender base */
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;
+    --card: 250 35% 96%;  /* Subtle purple-tinted card background */
     --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 0 0% 100%;
+    --popover: 250 30% 95%;  /* Light lavender popover */
     --popover-foreground: 222.2 84% 4.9%;
 
     /* Modern vibrant color palette */
@@ -55,7 +55,7 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 250 35% 96%;  /* Soft lavender sidebar */
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
