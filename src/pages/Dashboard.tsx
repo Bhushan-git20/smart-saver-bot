@@ -57,6 +57,7 @@ const Dashboard = () => {
       <DashboardHeader activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="container mx-auto px-6 py-8">
+        {/* Dashboard Overview */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
             <DashboardGreeting />
@@ -85,87 +86,207 @@ const Dashboard = () => {
 
             {/* Transactions Table */}
             <RecentTransactionsTable />
-          </div>
-        )}
 
-        {activeTab === 'expenses' && (
-          <div className="animate-fade-in">
-            <ExpenseTracker />
-          </div>
-        )}
-
-        {activeTab === 'accounts' && (
-          <Tabs defaultValue="transactions" className="space-y-6 animate-fade-in">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              <TabsTrigger value="recurring">Recurring</TabsTrigger>
-              <TabsTrigger value="budget">Budget</TabsTrigger>
-              <TabsTrigger value="achievements">Achievements</TabsTrigger>
-              <TabsTrigger value="chat">AI Assistant</TabsTrigger>
-              <TabsTrigger value="investments">Investments</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="transactions">
-              <Card className="shadow-lg border-2">
-                <CardHeader>
-                  <CardTitle>Transaction History</CardTitle>
-                  <CardDescription>
-                    View and manage all your transactions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <TransactionListPaginated />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="recurring">
-              <Suspense fallback={<LoadingFallback />}>
-                <RecurringTransactions />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="budget">
+            {/* Budget Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <BudgetGoals />
-            </TabsContent>
-
-            <TabsContent value="achievements">
               <Suspense fallback={<LoadingFallback />}>
                 <Gamification />
               </Suspense>
-            </TabsContent>
+            </div>
+          </div>
+        )}
 
-            <TabsContent value="chat">
-              <Card className="shadow-lg border-2">
-                <CardHeader>
-                  <CardTitle>AI Financial Assistant</CardTitle>
-                  <CardDescription>
-                    Get personalized financial advice
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+        {/* Revenue Tab - Same as Dashboard for now */}
+        {activeTab === 'revenue' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Revenue Overview</h2>
+                <p className="text-muted-foreground">Track your income streams and revenue performance</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PortfolioChart />
+              <TotalBalanceChart />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Analytics</CardTitle>
+                <CardDescription>Detailed breakdown of your income sources</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExpenseTracker />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Expenses Tab */}
+        {activeTab === 'expenses' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Expense Management</h2>
+                <p className="text-muted-foreground">Track and analyze your spending patterns</p>
+              </div>
+            </div>
+            
+            <ExpenseTracker />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Suspense fallback={<LoadingFallback />}>
+                <RecurringTransactions />
+              </Suspense>
+              <BudgetGoals />
+            </div>
+          </div>
+        )}
+
+        {/* Accounts Tab */}
+        {activeTab === 'accounts' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Account Management</h2>
+                <p className="text-muted-foreground">Manage transactions, budgets, and financial goals</p>
+              </div>
+            </div>
+
+            <Tabs defaultValue="transactions" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 bg-card p-2 rounded-xl">
+                <TabsTrigger value="transactions" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  Transactions
+                </TabsTrigger>
+                <TabsTrigger value="recurring" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  Recurring
+                </TabsTrigger>
+                <TabsTrigger value="budget" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  Budget
+                </TabsTrigger>
+                <TabsTrigger value="achievements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  Achievements
+                </TabsTrigger>
+                <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  AI Assistant
+                </TabsTrigger>
+                <TabsTrigger value="investments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  Investments
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                  Settings
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="transactions">
+                <RecentTransactionsTable />
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>All Transactions</CardTitle>
+                      <CardDescription>
+                        Complete transaction history with advanced filtering
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <TransactionListPaginated />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="recurring">
+                <Suspense fallback={<LoadingFallback />}>
+                  <RecurringTransactions />
+                </Suspense>
+              </TabsContent>
+
+              <TabsContent value="budget">
+                <BudgetGoals />
+              </TabsContent>
+
+              <TabsContent value="achievements">
+                <Suspense fallback={<LoadingFallback />}>
+                  <Gamification />
+                </Suspense>
+              </TabsContent>
+
+              <TabsContent value="chat">
+                <Card className="shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="text-2xl">💬</span>
+                      AI Financial Assistant
+                    </CardTitle>
+                    <CardDescription>
+                      Get personalized financial advice and insights
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <Suspense fallback={<LoadingFallback />}>
+                      <ChatBotAdvanced />
+                    </Suspense>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="investments">
+                <div className="space-y-6">
                   <Suspense fallback={<LoadingFallback />}>
-                    <ChatBotAdvanced />
+                    <PortfolioTracker />
+                    <InvestmentModule />
                   </Suspense>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </TabsContent>
 
-            <TabsContent value="investments">
+              <TabsContent value="settings">
+                <Suspense fallback={<LoadingFallback />}>
+                  <Settings />
+                  <div className="mt-6">
+                    <DataBackup />
+                  </div>
+                </Suspense>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Financial Analytics</h2>
+                <p className="text-muted-foreground">Deep insights into your financial performance</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PortfolioChart />
+              <TotalBalanceChart />
+            </div>
+
+            <FinancialPerformance />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Detailed Analytics</CardTitle>
+                <CardDescription>Comprehensive expense and income analysis</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExpenseTracker />
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Suspense fallback={<LoadingFallback />}>
                 <PortfolioTracker />
-                <InvestmentModule />
               </Suspense>
-            </TabsContent>
-
-            <TabsContent value="settings">
-              <Suspense fallback={<LoadingFallback />}>
-                <Settings />
-                <DataBackup />
-              </Suspense>
-            </TabsContent>
-          </Tabs>
+              <BudgetGoals />
+            </div>
+          </div>
         )}
       </main>
     </div>

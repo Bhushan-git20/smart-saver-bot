@@ -98,7 +98,10 @@ export const DashboardHeader = ({ activeTab, onTabChange }: DashboardHeaderProps
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  onClick={() => {/* Add sign out handler */}}
+                >
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>

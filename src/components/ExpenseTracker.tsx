@@ -134,28 +134,28 @@ export const ExpenseTracker = () => {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="border-l-4 border-l-success">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{totalIncome.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-success">₹{totalIncome.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-primary">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">₹{totalExpenses.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-primary">₹{totalExpenses.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-secondary">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Net Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-2xl font-bold ${totalIncome - totalExpenses >= 0 ? 'text-success' : 'text-destructive'}`}>
               ₹{(totalIncome - totalExpenses).toLocaleString()}
             </div>
           </CardContent>
@@ -164,18 +164,26 @@ export const ExpenseTracker = () => {
 
       {/* Main Tabs Interface */}
       <Tabs defaultValue="transactions" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="upload">Import Data</TabsTrigger>
-          <TabsTrigger value="settings">Auto-Rules</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-card p-2 rounded-xl">
+          <TabsTrigger value="transactions" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+            Transactions
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="upload" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+            Import Data
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+            Auto-Rules
+          </TabsTrigger>
         </TabsList>
 
         {/* Transactions Tab */}
         <TabsContent value="transactions" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Recent Transactions</h2>
-            <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               Add Transaction
             </Button>
@@ -183,8 +191,8 @@ export const ExpenseTracker = () => {
 
           {/* Add Transaction Form */}
           {showAddForm && (
-            <Card>
-              <CardHeader>
+            <Card className="border-l-4 border-l-primary">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
                 <CardTitle>Add New Transaction</CardTitle>
                 <CardDescription>
                   Manually add a new income or expense transaction
@@ -260,7 +268,7 @@ export const ExpenseTracker = () => {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" disabled={loading || !formData.category}>
+                    <Button type="submit" disabled={loading || !formData.category} className="bg-primary hover:bg-primary/90">
                       {loading ? 'Adding...' : 'Add Transaction'}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
