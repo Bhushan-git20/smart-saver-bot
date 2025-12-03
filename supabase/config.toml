@@ -39,8 +39,8 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 port = 54327
-site_url = "https://7a3b636d-576d-47ca-b94e-a87ccc85c580.lovableproject.com"
-additional_redirect_urls = ["https://7a3b636d-576d-47ca-b94e-a87ccc85c580.lovableproject.com"]
+site_url = "https://bywovmhxapltudvgjzhx.lovableproject.com"
+additional_redirect_urls = ["https://bywovmhxapltudvgjzhx.lovableproject.com", "https://bywovmhxapltudvgjzhx.lovableproject.com/auth"]
 jwt_expiry = 3600
 refresh_token_rotation_enabled = true
 refresh_token_reuse_interval = 10
@@ -58,6 +58,12 @@ inspector_port = 5432
 
 [functions.ai-financial-chat]
 verify_jwt = true
+
+[functions.ai-financial-chat-advanced]
+verify_jwt = true
+
+[functions.monthly-report]
+verify_jwt = false
 
 [functions.process-receipt]
 verify_jwt = true
