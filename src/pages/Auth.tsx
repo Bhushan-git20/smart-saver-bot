@@ -48,7 +48,7 @@ const Auth = () => {
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
 
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = 'https://bywovmhxapltudvgjzhx.lovableproject.com/';
 
     const { error } = await supabase.auth.signUp({
       email,
