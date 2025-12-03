@@ -424,10 +424,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      process_recurring_transactions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      process_recurring_transactions: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
