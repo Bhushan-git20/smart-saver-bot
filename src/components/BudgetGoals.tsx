@@ -1,36 +1,21 @@
 import React from 'react';
 
-const { useState, useEffect } = React;
+const { useState, useMemo } = React;
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { useBudgetGoals } from '@/hooks/useBudgetGoals';
+import { useQuery } from '@tanstack/react-query';
 import { SupabaseService } from '@/services/supabase.service';
 import { ValidationUtils } from '@/utils/validation';
-import { MonitoringService } from '@/services/monitoring.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Target, TrendingUp, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface BudgetGoal {
-  id: string;
-  category?: string;
-  monthly_limit?: number;
-  monthly_savings_target?: number;
-  period_start: string;
-  period_end: string;
-  is_active: boolean;
-}
-
-interface Transaction {
-  amount: number;
-  type: 'income' | 'expense';
-  category: string;
-  date: string;
-}
 
 const categories = [
   'Food & Dining', 'Transportation', 'Shopping', 'Entertainment',
@@ -40,9 +25,7 @@ const categories = [
 export const BudgetGoals = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [budgetGoals, setBudgetGoals] = useState<BudgetGoal[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { budgetGoals, isLoading: goalsLoading, createBudgetGoal, isCreating } = useBudgetGoals();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     category: '',
@@ -50,55 +33,32 @@ export const BudgetGoals = () => {
     monthly_savings_target: ''
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchBudgetGoals();
-      fetchTransactions();
-    }
-  }, [user]);
+  // Get current month date range
+  const dateRange = useMemo(() => {
+    const currentDate = new Date();
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    return {
+      startDate: firstDay.toISOString().split('T')[0],
+      endDate: lastDay.toISOString().split('T')[0]
+    };
+  }, []);
 
-  const fetchBudgetGoals = async () => {
-    if (!user) return;
-    try {
-      const data = await SupabaseService.getBudgetGoals(user.id);
-      setBudgetGoals(data);
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'BudgetGoals', action: 'fetchBudgetGoals' });
-      toast({
-        title: "Error",
-        description: "Failed to fetch budget goals",
-        variant: "destructive",
-      });
-    }
-  };
+  // Fetch transactions using React Query
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ['monthlyTransactions', user?.id, dateRange.startDate, dateRange.endDate],
+    queryFn: () => SupabaseService.getTransactionsByDateRange(user!.id, dateRange.startDate, dateRange.endDate),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
 
-  const fetchTransactions = async () => {
-    if (!user) return;
-    try {
-      const currentDate = new Date();
-      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-      const data = await SupabaseService.getTransactionsByDateRange(
-        user.id,
-        firstDay.toISOString().split('T')[0],
-        lastDay.toISOString().split('T')[0]
-      );
-      
-      setTransactions(data as Transaction[]);
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'BudgetGoals', action: 'fetchTransactions' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = goalsLoading || transactionsLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) return;
 
-    // Validate amounts
     if (formData.monthly_limit && !ValidationUtils.isValidAmount(parseFloat(formData.monthly_limit))) {
       toast({ title: "Error", description: "Invalid monthly limit", variant: "destructive" });
       return;
@@ -108,39 +68,22 @@ export const BudgetGoals = () => {
       return;
     }
 
-    try {
-      const currentDate = new Date();
-      const periodStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const currentDate = new Date();
+    const periodStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const budgetData = {
-        user_id: user.id,
-        category: formData.category || null,
-        monthly_limit: formData.monthly_limit ? parseFloat(formData.monthly_limit) : null,
-        monthly_savings_target: formData.monthly_savings_target ? parseFloat(formData.monthly_savings_target) : null,
-        period_start: periodStart.toISOString().split('T')[0],
-        period_end: periodEnd.toISOString().split('T')[0],
-        is_active: true
-      };
+    createBudgetGoal({
+      user_id: user.id,
+      category: formData.category || null,
+      monthly_limit: formData.monthly_limit ? parseFloat(formData.monthly_limit) : null,
+      monthly_savings_target: formData.monthly_savings_target ? parseFloat(formData.monthly_savings_target) : null,
+      period_start: periodStart.toISOString().split('T')[0],
+      period_end: periodEnd.toISOString().split('T')[0],
+      is_active: true
+    });
 
-      await SupabaseService.createBudgetGoal(budgetData);
-      
-      toast({
-        title: "Success",
-        description: "Budget goal created successfully",
-      });
-
-      setDialogOpen(false);
-      resetForm();
-      fetchBudgetGoals();
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'BudgetGoals', action: 'saveBudgetGoal' });
-      toast({
-        title: "Error",
-        description: "Failed to save budget goal",
-        variant: "destructive",
-      });
-    }
+    setDialogOpen(false);
+    resetForm();
   };
 
   const resetForm = () => {
@@ -185,7 +128,19 @@ export const BudgetGoals = () => {
   };
 
   if (loading) {
-    return <div className="text-center">Loading budget goals...</div>;
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-20 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -205,7 +160,7 @@ export const BudgetGoals = () => {
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={resetForm}>
+                <Button onClick={resetForm} disabled={isCreating}>
                   <Plus className="w-4 h-4 mr-2" />
                   Set Goal
                 </Button>
@@ -262,8 +217,8 @@ export const BudgetGoals = () => {
                     <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit">
-                      Set Goal
+                    <Button type="submit" disabled={isCreating}>
+                      {isCreating ? 'Saving...' : 'Set Goal'}
                     </Button>
                   </div>
                 </form>
