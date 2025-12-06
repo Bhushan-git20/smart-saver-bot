@@ -212,13 +212,34 @@ export class SupabaseService {
 
   // Portfolio Holdings
   static async createPortfolioHolding(holding: Database['public']['Tables']['portfolio_holdings']['Insert']) {
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from('portfolio_holdings')
       .insert(holding)
       .select()
       .single();
     
     if (error) throw new Error(`Failed to create portfolio holding: ${error.message}`);
+    return data;
+  }
+
+  static async deletePortfolioHolding(id: string) {
+    const { error } = await supabase
+      .from('portfolio_holdings')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete portfolio holding: ${error.message}`);
+  }
+
+  static async updatePortfolioHolding(id: string, updates: Partial<Database['public']['Tables']['portfolio_holdings']['Update']>) {
+    const { data, error } = await supabase
+      .from('portfolio_holdings')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to update portfolio holding: ${error.message}`);
     return data;
   }
 }

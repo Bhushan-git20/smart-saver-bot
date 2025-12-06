@@ -1,10 +1,9 @@
 import React from 'react';
 
-const { useState, useEffect } = React;
+const { useState } = React;
 import { useAuth } from '@/hooks/useAuth';
-import { SupabaseService } from '@/services/supabase.service';
+import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
 import { ValidationUtils } from '@/utils/validation';
-import { MonitoringService } from '@/services/monitoring.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -13,22 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
-interface RecurringTransaction {
-  id: string;
-  name: string;
-  category: string;
-  type: 'income' | 'expense';
-  amount: number;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  start_date: string;
-  end_date?: string;
-  next_due_date: string;
-  is_active: boolean;
-  description?: string;
-}
+type RecurringTransaction = Database['public']['Tables']['recurring_transactions']['Row'];
 
 const categories = [
   'Food & Dining', 'Transportation', 'Shopping', 'Entertainment',
@@ -39,8 +28,17 @@ const categories = [
 export const RecurringTransactions = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    recurringTransactions, 
+    isLoading, 
+    createRecurringTransaction, 
+    updateRecurringTransaction,
+    deleteRecurringTransaction,
+    isCreating,
+    isUpdating,
+    isDeleting
+  } = useRecurringTransactions();
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<RecurringTransaction | null>(null);
   const [formData, setFormData] = useState({
@@ -54,29 +52,6 @@ export const RecurringTransactions = () => {
     description: '',
     is_active: true
   });
-
-  useEffect(() => {
-    if (user) {
-      fetchRecurringTransactions();
-    }
-  }, [user]);
-
-  const fetchRecurringTransactions = async () => {
-    if (!user) return;
-    try {
-      const data = await SupabaseService.getRecurringTransactions(user.id);
-      setRecurringTransactions(data as RecurringTransaction[]);
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'RecurringTransactions', action: 'fetchRecurringTransactions' });
-      toast({
-        title: "Error",
-        description: "Failed to fetch recurring transactions",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const calculateNextDueDate = (startDate: string, frequency: string): string => {
     const start = new Date(startDate);
@@ -115,7 +90,6 @@ export const RecurringTransactions = () => {
     
     if (!user) return;
 
-    // Validate inputs
     const sanitizedName = ValidationUtils.sanitizeString(formData.name);
     const sanitizedDesc = ValidationUtils.sanitizeString(formData.description);
     
@@ -128,67 +102,35 @@ export const RecurringTransactions = () => {
       return;
     }
 
-    try {
-      const nextDueDate = calculateNextDueDate(formData.start_date, formData.frequency);
-      
-      const transactionData = {
-        user_id: user.id,
-        name: sanitizedName.substring(0, 200),
-        category: formData.category,
-        type: formData.type,
-        amount: parseFloat(formData.amount),
-        frequency: formData.frequency,
-        start_date: formData.start_date,
-        end_date: formData.end_date || null,
-        next_due_date: nextDueDate,
-        description: sanitizedDesc ? sanitizedDesc.substring(0, 500) : null,
-        is_active: formData.is_active
-      };
+    const nextDueDate = calculateNextDueDate(formData.start_date, formData.frequency);
+    
+    const transactionData = {
+      user_id: user.id,
+      name: sanitizedName.substring(0, 200),
+      category: formData.category,
+      type: formData.type,
+      amount: parseFloat(formData.amount),
+      frequency: formData.frequency,
+      start_date: formData.start_date,
+      end_date: formData.end_date || null,
+      next_due_date: nextDueDate,
+      description: sanitizedDesc ? sanitizedDesc.substring(0, 500) : null,
+      is_active: formData.is_active
+    };
 
-      if (editingTransaction) {
-        await SupabaseService.updateRecurringTransaction(editingTransaction.id, transactionData);
-        toast({
-          title: "Success",
-          description: "Recurring transaction updated successfully",
-        });
-      } else {
-        await SupabaseService.createRecurringTransaction(transactionData);
-        toast({
-          title: "Success",
-          description: "Recurring transaction created successfully",
-        });
-      }
-
-      setDialogOpen(false);
-      setEditingTransaction(null);
-      resetForm();
-      fetchRecurringTransactions();
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'RecurringTransactions', action: 'saveTransaction' });
-      toast({
-        title: "Error",
-        description: "Failed to save recurring transaction",
-        variant: "destructive",
-      });
+    if (editingTransaction) {
+      updateRecurringTransaction(editingTransaction.id, transactionData);
+    } else {
+      createRecurringTransaction(transactionData);
     }
+
+    setDialogOpen(false);
+    setEditingTransaction(null);
+    resetForm();
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await SupabaseService.deleteRecurringTransaction(id);
-      toast({
-        title: "Success",
-        description: "Recurring transaction deleted successfully",
-      });
-      fetchRecurringTransactions();
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'RecurringTransactions', action: 'deleteTransaction' });
-      toast({
-        title: "Error",
-        description: "Failed to delete recurring transaction",
-        variant: "destructive",
-      });
-    }
+  const handleDelete = (id: string) => {
+    deleteRecurringTransaction(id);
   };
 
   const handleEdit = (transaction: RecurringTransaction) => {
@@ -196,9 +138,9 @@ export const RecurringTransactions = () => {
     setFormData({
       name: transaction.name,
       category: transaction.category,
-      type: transaction.type,
+      type: transaction.type as 'income' | 'expense',
       amount: transaction.amount.toString(),
-      frequency: transaction.frequency,
+      frequency: transaction.frequency as 'daily' | 'weekly' | 'monthly' | 'yearly',
       start_date: transaction.start_date,
       end_date: transaction.end_date || '',
       description: transaction.description || '',
@@ -227,8 +169,24 @@ export const RecurringTransactions = () => {
     resetForm();
   };
 
-  if (loading) {
-    return <div className="text-center">Loading recurring transactions...</div>;
+  const isMutating = isCreating || isUpdating || isDeleting;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -243,7 +201,7 @@ export const RecurringTransactions = () => {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setEditingTransaction(null); }}>
+              <Button onClick={() => { resetForm(); setEditingTransaction(null); }} disabled={isMutating}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Recurring
               </Button>
@@ -375,8 +333,8 @@ export const RecurringTransactions = () => {
                   <Button type="button" variant="outline" onClick={handleDialogClose}>
                     Cancel
                   </Button>
-                  <Button type="submit">
-                    {editingTransaction ? 'Update' : 'Create'}
+                  <Button type="submit" disabled={isMutating}>
+                    {isMutating ? 'Saving...' : (editingTransaction ? 'Update' : 'Create')}
                   </Button>
                 </div>
               </form>
@@ -395,7 +353,9 @@ export const RecurringTransactions = () => {
             {recurringTransactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className={`flex items-center justify-between p-4 border rounded-lg transition-opacity ${
+                  transaction.id.startsWith('temp-') ? 'opacity-70' : ''
+                }`}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -429,7 +389,7 @@ export const RecurringTransactions = () => {
                     <p className={`font-bold ${
                       transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
+                      {transaction.type === 'income' ? '+' : '-'}₹{Number(transaction.amount).toLocaleString()}
                     </p>
                   </div>
                   
@@ -438,6 +398,7 @@ export const RecurringTransactions = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleEdit(transaction)}
+                      disabled={isMutating || transaction.id.startsWith('temp-')}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -445,6 +406,7 @@ export const RecurringTransactions = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleDelete(transaction.id)}
+                      disabled={isMutating || transaction.id.startsWith('temp-')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
