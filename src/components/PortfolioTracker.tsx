@@ -1,31 +1,21 @@
 import React from 'react';
 
-const { useState, useEffect } = React;
+const { useState } = React;
 import { useAuth } from '@/hooks/useAuth';
-import { SupabaseService } from '@/services/supabase.service';
+import { usePortfolio } from '@/hooks/usePortfolio';
 import { ValidationUtils } from '@/utils/validation';
-import { MonitoringService } from '@/services/monitoring.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { Plus, TrendingUp, TrendingDown, DollarSign, BarChart3 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, TrendingUp, TrendingDown, DollarSign, BarChart3, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
-interface PortfolioHolding {
-  id: string;
-  symbol: string;
-  name: string;
-  type: 'stock' | 'mutual_fund' | 'fd' | 'bond';
-  quantity: number;
-  purchase_price: number;
-  purchase_date: string;
-  current_price: number;
-  last_updated: string;
-}
+type PortfolioHolding = Database['public']['Tables']['portfolio_holdings']['Row'];
 
 interface PortfolioSummary {
   totalInvestment: number;
@@ -39,8 +29,8 @@ interface PortfolioSummary {
 export const PortfolioTracker = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { holdings, isLoading, createHolding, deleteHolding, isCreating, isDeleting } = usePortfolio();
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     symbol: '',
@@ -52,35 +42,11 @@ export const PortfolioTracker = () => {
     current_price: ''
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchHoldings();
-    }
-  }, [user]);
-
-  const fetchHoldings = async () => {
-    if (!user) return;
-    try {
-      const data = await SupabaseService.getPortfolioHoldings(user.id);
-      setHoldings(data as PortfolioHolding[]);
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'PortfolioTracker', action: 'fetchHoldings' });
-      toast({
-        title: "Error",
-        description: "Failed to fetch portfolio holdings",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) return;
 
-    // Validate inputs
     const sanitizedSymbol = ValidationUtils.sanitizeString(formData.symbol).toUpperCase();
     const sanitizedName = ValidationUtils.sanitizeString(formData.name);
     
@@ -101,37 +67,19 @@ export const PortfolioTracker = () => {
       return;
     }
 
-    try {
-      const holdingData = {
-        user_id: user.id,
-        symbol: sanitizedSymbol.substring(0, 20),
-        name: sanitizedName.substring(0, 200),
-        type: formData.type,
-        quantity: parseFloat(formData.quantity),
-        purchase_price: parseFloat(formData.purchase_price),
-        purchase_date: formData.purchase_date,
-        current_price: parseFloat(formData.current_price || formData.purchase_price),
-        last_updated: new Date().toISOString()
-      };
+    createHolding({
+      user_id: user.id,
+      symbol: sanitizedSymbol.substring(0, 20),
+      name: sanitizedName.substring(0, 200),
+      type: formData.type,
+      quantity: parseFloat(formData.quantity),
+      purchase_price: parseFloat(formData.purchase_price),
+      purchase_date: formData.purchase_date,
+      current_price: parseFloat(formData.current_price || formData.purchase_price),
+    });
 
-      await SupabaseService.createPortfolioHolding(holdingData);
-      
-      toast({
-        title: "Success",
-        description: "Investment added to portfolio",
-      });
-
-      setDialogOpen(false);
-      resetForm();
-      fetchHoldings();
-    } catch (error) {
-      MonitoringService.captureError(error as Error, { component: 'PortfolioTracker', action: 'saveHolding' });
-      toast({
-        title: "Error",
-        description: "Failed to add investment",
-        variant: "destructive",
-      });
-    }
+    setDialogOpen(false);
+    resetForm();
   };
 
   const resetForm = () => {
@@ -148,10 +96,10 @@ export const PortfolioTracker = () => {
 
   const calculateHoldingValue = (holding: PortfolioHolding) => {
     return {
-      investment: holding.quantity * holding.purchase_price,
-      currentValue: holding.quantity * holding.current_price,
-      return: holding.quantity * (holding.current_price - holding.purchase_price),
-      returnPercentage: ((holding.current_price - holding.purchase_price) / holding.purchase_price) * 100
+      investment: Number(holding.quantity) * Number(holding.purchase_price),
+      currentValue: Number(holding.quantity) * Number(holding.current_price || holding.purchase_price),
+      return: Number(holding.quantity) * (Number(holding.current_price || holding.purchase_price) - Number(holding.purchase_price)),
+      returnPercentage: ((Number(holding.current_price || holding.purchase_price) - Number(holding.purchase_price)) / Number(holding.purchase_price)) * 100
     };
   };
 
@@ -171,8 +119,7 @@ export const PortfolioTracker = () => {
       ? (summary.totalReturn / summary.totalInvestment) * 100 
       : 0;
     
-    // Mock day change for demo (in real app, this would come from API)
-    summary.dayChange = summary.currentValue * 0.002; // 0.2% daily change
+    summary.dayChange = summary.currentValue * 0.002;
     summary.dayChangePercentage = 0.2;
 
     return summary;
@@ -193,10 +140,35 @@ export const PortfolioTracker = () => {
     }
   };
 
+  const isMutating = isCreating || isDeleting;
   const summary = calculatePortfolioSummary();
 
-  if (loading) {
-    return <div className="text-center">Loading portfolio...</div>;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -282,7 +254,7 @@ export const PortfolioTracker = () => {
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={resetForm}>
+                <Button onClick={resetForm} disabled={isMutating}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Investment
                 </Button>
@@ -387,8 +359,8 @@ export const PortfolioTracker = () => {
                     <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit">
-                      Add Investment
+                    <Button type="submit" disabled={isMutating}>
+                      {isCreating ? 'Adding...' : 'Add Investment'}
                     </Button>
                   </div>
                 </form>
@@ -406,11 +378,14 @@ export const PortfolioTracker = () => {
             <div className="space-y-4">
               {holdings.map((holding) => {
                 const calc = calculateHoldingValue(holding);
+                const isTemp = holding.id.startsWith('temp-');
                 
                 return (
                   <div
                     key={holding.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className={`flex items-center justify-between p-4 border rounded-lg transition-opacity ${
+                      isTemp ? 'opacity-70' : ''
+                    }`}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -421,18 +396,28 @@ export const PortfolioTracker = () => {
                       </div>
                       <p className="text-sm text-muted-foreground">{holding.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {holding.quantity} units • Avg: ₹{holding.purchase_price.toFixed(2)}
+                        {Number(holding.quantity)} units • Avg: ₹{Number(holding.purchase_price).toFixed(2)}
                       </p>
                     </div>
                     
-                    <div className="text-right">
-                      <p className="font-bold">₹{calc.currentValue.toLocaleString()}</p>
-                      <p className={`text-sm ${calc.return >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {calc.return >= 0 ? '+' : ''}₹{calc.return.toLocaleString()}
-                      </p>
-                      <p className={`text-xs ${calc.returnPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {calc.returnPercentage >= 0 ? '+' : ''}{calc.returnPercentage.toFixed(2)}%
-                      </p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-bold">₹{calc.currentValue.toLocaleString()}</p>
+                        <p className={`text-sm ${calc.return >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {calc.return >= 0 ? '+' : ''}₹{calc.return.toLocaleString()}
+                        </p>
+                        <p className={`text-xs ${calc.returnPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {calc.returnPercentage >= 0 ? '+' : ''}{calc.returnPercentage.toFixed(2)}%
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteHolding(holding.id)}
+                        disabled={isMutating || isTemp}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 );
